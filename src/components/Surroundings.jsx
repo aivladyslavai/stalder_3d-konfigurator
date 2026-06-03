@@ -50,20 +50,26 @@ function Planter({ position, scale = 1 }) {
   )
 }
 
-function Surroundings({ poolLength, poolWidth }) {
+function Surroundings({ poolLength, poolWidth, scene = 'outdoor' }) {
   const hl = poolLength / 2
   const hw = poolWidth / 2
+  const indoor = scene === 'indoor'
 
   return (
     <group>
-      {/* Zwei Sonnenliegen links neben dem Becken */}
-      <Lounger position={[-hl - 2.6, 0, -0.6]} rotation={Math.PI / 2} />
-      <Lounger position={[-hl - 2.6, 0, 1.4]} rotation={Math.PI / 2} />
+      {/* Sonnenliegen nur im Aussenbereich */}
+      {!indoor && (
+        <>
+          <Lounger position={[-hl - 2.6, 0, -0.6]} rotation={Math.PI / 2} />
+          <Lounger position={[-hl - 2.6, 0, 1.4]} rotation={Math.PI / 2} />
+        </>
+      )}
 
-      {/* Pflanzkübel an den hinteren Ecken */}
-      <Planter position={[hl + 1.6, 0, -hw - 1.6]} scale={1.1} />
-      <Planter position={[-hl - 1.4, 0, -hw - 1.8]} scale={0.9} />
-      <Planter position={[hl + 2.4, 0, hw + 1.2]} scale={1.0} />
+      {/* Pflanzkübel (beide Szenen) – innen näher ans Becken gerückt */}
+      <Planter position={[hl + 1.4, 0, -hw - 1.4]} scale={indoor ? 1.0 : 1.1} />
+      <Planter position={[-hl - 1.3, 0, -hw - 1.5]} scale={0.9} />
+      {!indoor && <Planter position={[hl + 2.4, 0, hw + 1.2]} scale={1.0} />}
+      {indoor && <Planter position={[hl + 1.6, 0, hw + 1.4]} scale={1.15} />}
     </group>
   )
 }

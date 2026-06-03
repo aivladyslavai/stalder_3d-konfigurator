@@ -27,8 +27,8 @@ function Water({ length, width, shape, led }) {
   }, [length, width, t, r])
 
   const normalMap = useMemo(() => {
-    const tex = makeWaterNormalTexture(256, 8)
-    tex.repeat.set(3, 3)
+    const tex = makeWaterNormalTexture(512, 14)
+    tex.repeat.set(4, 4)
     return tex
   }, [])
 
@@ -55,18 +55,18 @@ function Water({ length, width, shape, led }) {
         mixBlur={1.2}
         mixStrength={1.1}
         mixContrast={1.0}
-        roughness={0.18}
+        roughness={0.14}
         depthScale={0.4}
         minDepthThreshold={0.2}
         maxDepthThreshold={1.0}
         color={led ? '#2fb6d8' : '#2a86b4'}
         metalness={0.2}
-        mirror={0.42}
+        mirror={0.5}
         normalMap={normalMap}
-        normalScale={[0.12, 0.12]}
+        normalScale={[0.16, 0.16]}
         transparent
-        opacity={0.6}
-        envMapIntensity={0.7}
+        opacity={0.62}
+        envMapIntensity={0.8}
         side={THREE.DoubleSide}
       />
     </mesh>

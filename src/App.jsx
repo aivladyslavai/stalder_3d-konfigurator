@@ -4,6 +4,7 @@ import Scene from './components/Scene'
 import Header from './ui/Header'
 import Stepper from './ui/Stepper'
 import WizardPanel from './ui/WizardPanel'
+import EnvControls from './ui/EnvControls'
 
 /**
  * STALDER Pool Konfigurator – Layout:
@@ -27,6 +28,7 @@ export default function App() {
         {/* Live-3D-Vorschau */}
         <div className="relative min-h-[40vh] flex-1 bg-gradient-to-b from-sky-100 to-sky-200 lg:min-h-0">
           <Scene />
+          <EnvControls />
         </div>
       </div>
     </div>
