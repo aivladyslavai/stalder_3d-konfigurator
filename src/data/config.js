@@ -1,20 +1,19 @@
 // Zentrale Definitionen für den Konfigurator (Labels in Deutsch, Preise in CHF).
+// Preisdaten aus Konfigurator_Becken_PP Chromstahl.xlsx (Mycah von Mentlen / STALDER).
 
-// Markenfarben STALDER (von stalderag.ch)
-export const BRAND_NAVY = '#002B6F' // Kopfzeile, Logo, Struktur
+export const BRAND_NAVY = '#002B6F'
 export const BRAND_NAVY_DARK = '#00224f'
-export const BRAND_SKY = '#32B4E6' // Akzent / Call-to-Action (Pillen-Buttons)
+export const BRAND_SKY = '#32B4E6'
 export const BRAND_SKY_DARK = '#1f9fd1'
 
-// Wandstärke des Beckens (m) – für Innen-/Wasserabmessungen
 export const WALL_THICKNESS = 0.15
 
-// --- Schritt 1: Pooltyp ---
+// --- Schritt 1: Material ---
 export const POOL_TYPES = [
   {
-    id: 'Edelstahl',
-    label: 'Edelstahlbecken',
-    desc: 'Hochwertige Edelstahlbecken für höchste Ansprüche an Design, Langlebigkeit und Wertbeständigkeit.',
+    id: 'Chromstahl',
+    label: 'Chromstahlbecken',
+    desc: 'Hochwertige Chromstahlbecken für höchste Ansprüche an Design, Langlebigkeit und Wertbeständigkeit.',
   },
   {
     id: 'PP',
@@ -23,54 +22,226 @@ export const POOL_TYPES = [
   },
 ]
 
-// --- Schritt 2: Form ---
-export const SHAPES = [
-  { id: 'Rechteck', label: 'Rechteckpool', surcharge: 0 },
-  { id: 'Infinity', label: 'Infinity Pool', surcharge: 9000 },
-  { id: 'Skimmer', label: 'Skimmer Pool', surcharge: 0 },
-  { id: 'Individuell', label: 'Individuelle Form', surcharge: 6000 },
+// --- Schritt 2: Poolart (Skimmer / Überlauf) ---
+export const POOL_SYSTEMS = [
+  {
+    id: 'Skimmer',
+    label: 'Skimmer',
+    desc: 'Klassische Skimmer-Technik mit Düsen, Skimmer und Bodenablauf.',
+  },
+  {
+    id: 'Ueberlauf',
+    label: 'Überlauf (Infinity)',
+    desc: 'Infinity-Pool mit Schwallbehälter für eine ebene Wasseroberfläche.',
+  },
 ]
 
-// --- Schritt 4: Treppe ---
-export const STAIRS = [
-  { id: 'Ecktreppe', label: 'Ecktreppe', surcharge: 0 },
-  { id: 'Breitstufentreppe', label: 'Breitstufentreppe', surcharge: 1800 },
-  { id: 'Schwebetreppe', label: 'Schwebetreppe', surcharge: 3500 },
+// --- Schritt 3: Feste Beckengrössen ---
+export const POOL_SIZES = [
+  { id: 'S', label: 'S', length: 4, width: 2, depth: 1.5, dimsLabel: '4000 × 2000 × 1500 mm' },
+  { id: 'M', label: 'M', length: 5, width: 2.5, depth: 1.5, dimsLabel: '5000 × 2500 × 1500 mm' },
+  { id: 'L', label: 'L', length: 6, width: 3, depth: 1.5, dimsLabel: '6000 × 3000 × 1500 mm' },
+  { id: 'XL', label: 'XL', length: 7, width: 3, depth: 1.5, dimsLabel: '7000 × 3000 × 1500 mm' },
+  { id: 'XXL', label: 'XXL', length: 8, width: 3.5, depth: 1.5, dimsLabel: '8000 × 3500 × 1500 mm' },
+  { id: 'Family', label: 'Family', length: 10, width: 3.5, depth: 1.5, dimsLabel: '10000 × 3500 × 1500 mm' },
 ]
 
-// --- Schritt 5: Ausstattung ---
-export const EQUIPMENT = [
-  { id: 'led', label: 'LED Beleuchtung', desc: 'Stimmungsvolle LED-Beleuchtung in mehreren Farben.', price: 1200 },
-  { id: 'countercurrent', label: 'Gegenstromanlage', desc: 'Für sportliches Schwimmen auf kleinem Raum.', price: 3200 },
-  { id: 'heatpump', label: 'Wärmepumpe', desc: 'Effiziente Erwärmung für längere Badesaison.', price: 3800 },
-  { id: 'saltwater', label: 'Salzwasseranlage', desc: 'Kristallklares Wasser durch natürliche Elektrolyse.', price: 2400 },
-  { id: 'cover', label: 'Poolabdeckung', desc: 'Schützt, spart Energie und hält Ihr Wasser sauber.', price: 4200 },
-  { id: 'jets', label: 'Massagejets', desc: 'Entspannung pur durch gezielte Wasser-Massagen.', price: 980 },
+// Basispreise Becken (VP, inkl. Düsen + Skimmer/Bodenablauf bzw. Schwallbehälter)
+const BASE_PRICES = {
+  Chromstahl: {
+    Skimmer: { S: 43000, M: 55900, L: 67600, XL: 74100, XXL: 88400, Family: 102700 },
+    Ueberlauf: { S: 55900, M: 74100, L: 89700, XL: 97500, XXL: 105300, Family: 120900 },
+  },
+  PP: {
+    Skimmer: { S: 17096, M: 18596, L: 19396, XL: 20596, XXL: 22796, Family: 25796 },
+    Ueberlauf: { S: 18956, M: 19469, L: 22636, XL: 24196, XXL: 26936, Family: 30656 },
+  },
+}
+
+// --- Schritt 4: Treppen (materialabhängig) ---
+export const STAIRS_BY_TYPE = {
+  Chromstahl: [
+    { id: 'Ecktreppe', label: 'Ecktreppe', price: 3575, visual: 'Ecktreppe' },
+    { id: 'Schwebend4', label: 'Schwebende Treppenstufen 4 Stufen', price: 4160, visual: 'Schwebetreppe', steps: 4 },
+    { id: 'Schwebend5', label: 'Schwebende Treppenstufen 5 Stufen', price: 5070, visual: 'Schwebetreppe', steps: 5 },
+    { id: 'VolleBreite', label: 'Treppe über gesamte Beckenbreite', price: 5791.5, visual: 'Breitstufentreppe' },
+  ],
+  PP: [
+    { id: 'Ecktreppe', label: 'Ecktreppe', price: 1598, visual: 'Ecktreppe' },
+    { id: 'VolleBreite', label: 'Treppe über gesamte Beckenbreite', price: 2798, visual: 'Breitstufentreppe' },
+  ],
+}
+
+export const NO_STAIR = { id: 'Keine', label: 'Keine Treppe', price: 0, visual: null }
+
+// --- Schritt 5: Ausstattung (Preise teils grössen-/materialabhängig) ---
+export const CHLOR_SYSTEM = {
+  id: 'chlor',
+  label: 'Chlor ASEKO Aqua HOME NET redox',
+  desc: 'Automatische Chlor-Desinfektion mit Redox-Steuerung.',
+  price: 5898,
+}
+
+export const SALT_BY_SIZE = {
+  S: { label: 'Salz MPP10', price: 4400 },
+  M: { label: 'Salz MPP16', price: 5032 },
+  L: { label: 'Salz MPP24', price: 5832 },
+  XL: { label: 'Salz MPP24', price: 5832 },
+  XXL: { label: 'Salz MPP36', price: 7192 },
+  Family: { label: 'Salz MPP36', price: 7192 },
+}
+
+export const FILTER_BY_SIZE = {
+  S: { label: 'PureS 510 + iWash + InverMaster 20', price: 3152.4 },
+  M: { label: 'PureS 510 + iWash + InverMaster 25', price: 3331.2 },
+  L: { label: 'PureS 620 + iWash + InverMaster 25', price: 3405.6 },
+  XL: { label: 'PureS 620 + iWash + InverMaster 30', price: 3573.6 },
+  XXL: { label: 'PureS 620 + iWash + InverMaster 30', price: 3573.6 },
+  Family: { label: 'PureS 620 + iWash + InverMaster 30', price: 3573.6 },
+}
+
+export const HEATPUMP_BY_SIZE = {
+  S: { label: 'MSRC120', price: 5018 },
+  M: { label: 'MSRC150', price: 5708 },
+  L: { label: 'MSRC180', price: 6264 },
+  XL: { label: 'MSRC210', price: 6934 },
+  XXL: { label: 'MSRC230', price: 7478 },
+  Family: { label: 'MSRC350', price: 10074 },
+}
+
+export const ROLLADEN_BY_SIZE = {
+  S: 14488,
+  M: 15418,
+  L: 16648,
+  XL: 17260,
+  XXL: 18796,
+  Family: 20224,
+}
+
+export const LED_BY_TYPE = {
+  Chromstahl: { label: '1 Lampe RGBW', price: 3402 },
+  PP: { label: '1 Lampe RGBW', price: 1000 },
+}
+
+export const OPTIONAL_EQUIPMENT = [
+  {
+    id: 'countercurrent',
+    label: 'Gegenstromanlage H240',
+    desc: 'iGarden InverJet Gegenstromanlage 240 m³.',
+    price: 8500,
+  },
+  {
+    id: 'robotX60',
+    label: 'Poolroboter X60 InverX',
+    desc: 'Automatischer Bodenreiniger.',
+    price: 820,
+    group: 'robot',
+  },
+  {
+    id: 'robotX80',
+    label: 'Poolroboter X80 InverX',
+    desc: 'Leistungsstärkerer automatischer Bodenreiniger.',
+    price: 938,
+    group: 'robot',
+  },
 ]
+
+// Wellness / platzierbare Elemente (Berndorf-Logik, Richtpreise)
+export const PLACEABLES = {
+  massageduese: {
+    id: 'massageduese',
+    kind: 'jet',
+    label: 'Massagedüse',
+    price: 980,
+    place: 'wall',
+    exclusive: false,
+  },
+  schwall: {
+    id: 'schwall',
+    kind: 'schwall',
+    label: 'Schwalldusche',
+    price: 2450,
+    place: 'wall',
+    exclusive: false,
+  },
+  liege: {
+    id: 'liege',
+    kind: 'liege',
+    label: 'Liege 2 m',
+    price: 1890,
+    place: 'wall',
+    exclusive: false,
+  },
+  bank: {
+    id: 'bank',
+    kind: 'bank',
+    label: 'Rohrsitzbank 2 m',
+    price: 1490,
+    place: 'wall',
+    exclusive: false,
+  },
+  countercurrent: {
+    id: 'countercurrent',
+    kind: 'countercurrent',
+    label: 'Gegenstromanlage H240',
+    price: 8500,
+    place: 'wall',
+    exclusive: true,
+  },
+  robotX60: {
+    id: 'robotX60',
+    kind: 'robot',
+    variant: 'X60',
+    label: 'Poolroboter X60 InverX',
+    price: 820,
+    place: 'floor',
+    exclusive: 'robot',
+  },
+  robotX80: {
+    id: 'robotX80',
+    kind: 'robot',
+    variant: 'X80',
+    label: 'Poolroboter X80 InverX',
+    price: 938,
+    place: 'floor',
+    exclusive: 'robot',
+  },
+  heatpump: {
+    id: 'heatpump',
+    kind: 'heatpump',
+    label: 'Wärmepumpe',
+    price: 0,
+    place: 'deck',
+    exclusive: true,
+  },
+}
+
+export function findPlaceable(id) {
+  return PLACEABLES[id] || null
+}
 
 // --- Schritt 6: Material & Farbe ---
-// PP-Farben (matte Oberfläche)
 export const PP_COLORS = [
   { id: 'Weiss', label: 'Weiss', color: '#EAF1F5' },
   { id: 'Hellgrau', label: 'Hellgrau', color: '#B9C2C8' },
   { id: 'Anthrazit', label: 'Anthrazit', color: '#2E3338' },
   { id: 'Sand', label: 'Sand', color: '#CDBE9E' },
 ]
-// Edelstahl-Ausführungen
+
 export const STEEL_FINISHES = [
-  { id: 'Gebuerstet', label: 'Gebürsteter Edelstahl', color: '#c4c9cc', metalness: 0.75, roughness: 0.35, surcharge: 0 },
-  { id: 'Poliert', label: 'Polierter Edelstahl', color: '#e6e9eb', metalness: 1.0, roughness: 0.05, surcharge: 2500 },
+  { id: 'Gebuerstet', label: 'Gebürsteter Chromstahl', color: '#c4c9cc', metalness: 0.75, roughness: 0.35 },
+  { id: 'Poliert', label: 'Polierter Chromstahl', color: '#e6e9eb', metalness: 1.0, roughness: 0.05 },
 ]
 
-// --- Schritt-Reihenfolge (Stepper links) ---
+// --- Schritt-Reihenfolge ---
 export const STEPS = [
-  { key: 'type', label: 'Pooltyp' },
-  { key: 'shape', label: 'Form wählen' },
-  { key: 'size', label: 'Grösse definieren' },
-  { key: 'stairs', label: 'Treppe auswählen' },
+  { key: 'type', label: 'Material' },
+  { key: 'system', label: 'Poolart' },
+  { key: 'size', label: 'Grösse' },
+  { key: 'stairs', label: 'Treppe' },
   { key: 'equipment', label: 'Ausstattung' },
-  { key: 'material', label: 'Material und Farbe' },
-  { key: 'summary', label: 'Ihre Konfiguration' },
+  { key: 'material', label: 'Farbe' },
+  { key: 'summary', label: 'Zusammenfassung' },
 ]
 
 // --- Szene / Vorschau ---
@@ -83,7 +254,6 @@ export const TIME_OPTIONS = [
   { id: 'dusk', label: 'Abend' },
 ]
 
-// Bodenbelag der Terrasse / des Raums
 export const DECK_MATERIALS = [
   { id: 'stone-light', label: 'Naturstein hell', kind: 'paver', color: '#d8d2c4', roughness: 0.92 },
   { id: 'stone-dark', label: 'Naturstein dunkel', kind: 'paver', color: '#5d5953', roughness: 0.88 },
@@ -91,11 +261,50 @@ export const DECK_MATERIALS = [
   { id: 'wood', label: 'Holzdeck', kind: 'wood', color: '#ffffff', roughness: 0.65 },
   { id: 'concrete', label: 'Sichtbeton', kind: 'concrete', color: '#bdbbb5', roughness: 0.8 },
 ]
-export const findDeckMaterial = (id) => DECK_MATERIALS.find((d) => d.id === id) || DECK_MATERIALS[0]
 
 export const PHONE = '+41 41 930 43 43'
 
-// Hilfsfunktion: liefert das gewählte PP-Farbobjekt
+// --- Hilfsfunktionen ---
+
+export const findPoolSize = (id) => POOL_SIZES.find((s) => s.id === id) || POOL_SIZES[1]
+export const findDeckMaterial = (id) => DECK_MATERIALS.find((d) => d.id === id) || DECK_MATERIALS[0]
 export const findPPColor = (id) => PP_COLORS.find((c) => c.id === id) || PP_COLORS[0]
-// Hilfsfunktion: liefert die gewählte Edelstahl-Ausführung
 export const findSteelFinish = (id) => STEEL_FINISHES.find((c) => c.id === id) || STEEL_FINISHES[0]
+
+export function getBasePrice(type, system, sizeId) {
+  return BASE_PRICES[type]?.[system]?.[sizeId] ?? 0
+}
+
+export function getStairsForType(type) {
+  return STAIRS_BY_TYPE[type] || STAIRS_BY_TYPE.Chromstahl
+}
+
+export function findStair(type, stairId) {
+  if (stairId === 'Keine') return NO_STAIR
+  return getStairsForType(type).find((s) => s.id === stairId) || getStairsForType(type)[0]
+}
+
+export function getFilterInfo(sizeId) {
+  return FILTER_BY_SIZE[sizeId] || FILTER_BY_SIZE.M
+}
+
+export function getSaltInfo(sizeId) {
+  return SALT_BY_SIZE[sizeId] || SALT_BY_SIZE.M
+}
+
+export function getHeatPumpInfo(sizeId) {
+  return HEATPUMP_BY_SIZE[sizeId] || HEATPUMP_BY_SIZE.M
+}
+
+export function getRolladenPrice(sizeId) {
+  return ROLLADEN_BY_SIZE[sizeId] ?? 0
+}
+
+export function getLedInfo(type) {
+  return LED_BY_TYPE[type] || LED_BY_TYPE.Chromstahl
+}
+
+/** 3D-Darstellung: Skimmer = Rechteck mit Skimmerdeckel, Überlauf = Infinity */
+export function visualShapeForSystem(poolSystem) {
+  return poolSystem === 'Ueberlauf' ? 'Infinity' : 'Skimmer'
+}

@@ -12,7 +12,7 @@ import { roundedRectShape, cornerRadiusFor, waterLevelFor } from '../three/footp
  *
  * Props: { length, width, shape, led }
  */
-function Water({ length, width, shape, led }) {
+function Water({ length, width, shape, led, pickable = true }) {
   const meshRef = useRef()
   const t = WALL_THICKNESS
   const r = cornerRadiusFor(shape)
@@ -49,7 +49,7 @@ function Water({ length, width, shape, led }) {
   const zOffset = isInfinity ? t / 2 : 0
 
   return (
-    <mesh ref={meshRef} geometry={geometry} position={[0, baseY, zOffset]} renderOrder={2}>
+    <mesh ref={meshRef} geometry={geometry} position={[0, baseY, zOffset]} renderOrder={2} raycast={pickable ? undefined : () => {}}>
       <MeshReflectorMaterial
         resolution={1024}
         mixBlur={1.2}

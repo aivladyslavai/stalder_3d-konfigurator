@@ -43,7 +43,7 @@ export default function StepMaterial() {
 
   return (
     <div>
-      <h3 className="mb-3 text-sm font-semibold text-gray-700">Edelstahlbecken</h3>
+      <h3 className="mb-3 text-sm font-semibold text-gray-700">Chromstahlbecken</h3>
       <div className="grid grid-cols-2 gap-4 sm:max-w-xs">
         {STEEL_FINISHES.map((f) => (
           <Swatch

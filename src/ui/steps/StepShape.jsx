@@ -1,20 +1,21 @@
 import React from 'react'
-import { SHAPES } from '../../data/config'
+import { POOL_SYSTEMS } from '../../data/config'
 import { usePoolConfig } from '../../hooks/usePoolConfig'
 import { RadioCard } from '../components/Cards'
 
-export default function StepShape() {
-  const shape = usePoolConfig((s) => s.shape)
-  const setShape = usePoolConfig((s) => s.setShape)
+export default function StepPoolSystem() {
+  const poolSystem = usePoolConfig((s) => s.poolSystem)
+  const setPoolSystem = usePoolConfig((s) => s.setPoolSystem)
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      {SHAPES.map((s) => (
+      {POOL_SYSTEMS.map((s) => (
         <RadioCard
           key={s.id}
-          active={shape === s.id}
-          onClick={() => setShape(s.id)}
+          active={poolSystem === s.id}
+          onClick={() => setPoolSystem(s.id)}
           title={s.label}
+          desc={s.desc}
         />
       ))}
     </div>

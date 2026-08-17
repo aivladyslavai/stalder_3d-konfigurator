@@ -1,43 +1,56 @@
 import { create } from 'zustand'
 import {
-  SHAPES,
-  STAIRS,
-  EQUIPMENT,
-  STEPS,
+  CHLOR_SYSTEM,
+  findPoolSize,
+  findStair,
   findPPColor,
   findSteelFinish,
+  findPlaceable,
+  getBasePrice,
+  getFilterInfo,
+  getSaltInfo,
+  getHeatPumpInfo,
+  getRolladenPrice,
+  getLedInfo,
+  getStairsForType,
 } from '../data/config'
+import { clampInPool, snapToDeck } from '../three/placement'
 
-export { WALL_THICKNESS } from '../data/config'
+export { WALL_THICKNESS, visualShapeForSystem } from '../data/config'
 
-/**
- * Berechnet den Richtpreis-Bereich (min/max) anhand der aktuellen Konfiguration.
- * Realistische Schweizer Poolpreise; Ausgabe gerundet auf 1'000 CHF.
- */
-export function calcPriceRange(state) {
-  const { type, length, width, depth, shape, stair, options, steelFinish } = state
-  const area = length * width
+const DEFAULT_SIZE = findPoolSize('M')
 
-  const baseType = type === 'Edelstahl' ? 24000 : 12000
-  const perSqm = type === 'Edelstahl' ? 900 : 500
-  let p = baseType + area * perSqm + (depth - 1.2) * area * 800
-
-  // Form-Aufpreis
-  p += SHAPES.find((s) => s.id === shape)?.surcharge || 0
-  // Treppen-Aufpreis
-  p += STAIRS.find((s) => s.id === stair)?.surcharge || 0
-  // Edelstahl-Ausführung
-  if (type === 'Edelstahl') p += findSteelFinish(steelFinish).surcharge || 0
-  // Ausstattung
-  for (const item of EQUIPMENT) {
-    if (options[item.id]) p += item.price
-  }
-
-  const round1k = (v) => Math.round(v / 1000) * 1000
-  return { min: round1k(p * 0.95), max: round1k(p * 1.15) }
+function uid() {
+  return `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 }
 
-// Schweizer Formatierung: "CHF XX'XXX"
+function ensureValidStair(type, stair) {
+  const available = getStairsForType(type)
+  if (stair === 'Keine') return stair
+  return available.some((s) => s.id === stair) ? stair : available[0].id
+}
+
+export function calcPrice(state) {
+  const { type, poolSystem, sizeId, stair, disinfection, options, placements } = state
+
+  let total = getBasePrice(type, poolSystem, sizeId)
+  total += getFilterInfo(sizeId).price
+  total += findStair(type, stair).price
+
+  if (disinfection === 'chlor') total += CHLOR_SYSTEM.price
+  if (disinfection === 'salt') total += getSaltInfo(sizeId).price
+  if (options.led) total += getLedInfo(type).price
+  if (options.rolladen) total += getRolladenPrice(sizeId)
+  if (placements.some((p) => p.catalogId === 'heatpump')) total += getHeatPumpInfo(sizeId).price
+
+  for (const p of placements) {
+    const item = findPlaceable(p.catalogId)
+    if (item && item.kind !== 'heatpump') total += item.price
+  }
+
+  return Math.round(total * 100) / 100
+}
+
 export function formatCHF(value) {
   const formatted = Math.round(value)
     .toString()
@@ -45,108 +58,235 @@ export function formatCHF(value) {
   return `CHF ${formatted}`
 }
 
-/**
- * Liefert die Material-Eigenschaften für das Becken abhängig von Typ & Auswahl.
- */
 export function getPoolMaterial(state) {
-  if (state.type === 'Edelstahl') {
-    const f = findSteelFinish(state.steelFinish)
-    return { color: f.color, metalness: f.metalness, roughness: f.roughness }
+  if (state.type === 'PP') {
+    const c = findPPColor(state.ppColor)
+    return { color: c.color, metalness: 0.0, roughness: 0.55 }
   }
-  const c = findPPColor(state.ppColor)
-  return { color: c.color, metalness: 0.0, roughness: 0.55 }
+  const f = findSteelFinish(state.steelFinish)
+  return { color: f.color, metalness: f.metalness, roughness: f.roughness }
+}
+
+export function listSelectedLines(state) {
+  const lines = []
+  const size = findPoolSize(state.sizeId)
+  lines.push({
+    id: 'base',
+    label: `${state.type === 'PP' ? 'PP' : 'Chromstahl'} ${state.poolSystem === 'Ueberlauf' ? 'Überlauf' : 'Skimmer'} ${size.label}`,
+    price: getBasePrice(state.type, state.poolSystem, state.sizeId),
+  })
+  lines.push({ id: 'filter', label: getFilterInfo(state.sizeId).label, price: getFilterInfo(state.sizeId).price })
+
+  const stair = findStair(state.type, state.stair)
+  if (stair.price > 0) lines.push({ id: 'stair', label: stair.label, price: stair.price })
+
+  if (state.disinfection === 'chlor') lines.push({ id: 'chlor', label: CHLOR_SYSTEM.label, price: CHLOR_SYSTEM.price })
+  if (state.disinfection === 'salt') {
+    const salt = getSaltInfo(state.sizeId)
+    lines.push({ id: 'salt', label: salt.label, price: salt.price })
+  }
+  if (state.options.led) {
+    const led = getLedInfo(state.type)
+    lines.push({ id: 'led', label: led.label, price: led.price })
+  }
+  if (state.options.rolladen) {
+    lines.push({ id: 'rolladen', label: 'Rollladen Polycarbonat', price: getRolladenPrice(state.sizeId) })
+  }
+  if (state.placements.some((p) => p.catalogId === 'heatpump')) {
+    const hp = getHeatPumpInfo(state.sizeId)
+    lines.push({ id: 'heatpump', label: `Wärmepumpe ${hp.label}`, price: hp.price })
+  }
+
+  const counts = {}
+  for (const p of state.placements) {
+    if (p.catalogId === 'heatpump') continue
+    const item = findPlaceable(p.catalogId)
+    if (!item) continue
+    counts[item.id] = counts[item.id] || { item, n: 0 }
+    counts[item.id].n += 1
+  }
+  for (const { item, n } of Object.values(counts)) {
+    lines.push({
+      id: item.id,
+      label: n > 1 ? `${n}× ${item.label}` : item.label,
+      price: item.price * n,
+    })
+  }
+  return lines
 }
 
 export const usePoolConfig = create((set, get) => ({
-  // Navigation
-  step: 0, // Index in STEPS
   showLeadForm: false,
+  topView: false,
 
-  // Konfiguration
-  type: 'Edelstahl',
-  shape: 'Rechteck',
-  length: 8,
-  width: 4,
-  depth: 1.5,
-  unit: 'm', // 'm' | 'cm'
+  type: 'Chromstahl',
+  poolSystem: 'Skimmer',
+  sizeId: 'M',
+  length: DEFAULT_SIZE.length,
+  width: DEFAULT_SIZE.width,
+  depth: DEFAULT_SIZE.depth,
   stair: 'Ecktreppe',
+  stairCorner: 'nw',
+  stairWall: 'west',
+  disinfection: null,
   options: {
     led: false,
-    countercurrent: false,
-    heatpump: false,
-    saltwater: false,
-    cover: false,
-    jets: false,
+    rolladen: false,
   },
+  placements: [],
+  placing: null,
   ppColor: 'Weiss',
   steelFinish: 'Gebuerstet',
 
-  // Szene / Vorschau
-  scene: 'outdoor', // 'outdoor' | 'indoor'
-  timeOfDay: 'day', // 'day' | 'dusk'
-  deck: 'stone-light',
+  scene: 'outdoor',
+  timeOfDay: 'day',
+  deck: 'wood',
 
-  // Lead-Formular
   lead: { firstName: '', lastName: '', phone: '', email: '', zip: '', message: '' },
+  price: 0,
 
-  // Preis
-  priceMin: 0,
-  priceMax: 0,
-
-  // --- Aktionen ---
-  setStep: (step) => set({ step, showLeadForm: false }),
-  next: () => set((s) => ({ step: Math.min(s.step + 1, STEPS.length - 1) })),
-  prev: () =>
-    set((s) =>
-      s.showLeadForm
-        ? { showLeadForm: false }
-        : { step: Math.max(s.step - 1, 0) },
-    ),
   openLeadForm: () => set({ showLeadForm: true }),
+  closeLeadForm: () => set({ showLeadForm: false }),
+  setTopView: (topView) => set({ topView }),
 
   setType: (type) => {
-    set({ type })
+    const stair = ensureValidStair(type, get().stair)
+    set({ type, stair })
     get().recompute()
   },
-  setShape: (shape) => {
-    set({ shape })
+  setPoolSystem: (poolSystem) => {
+    set({ poolSystem })
     get().recompute()
   },
-  setDimensions: (dims) => {
-    set((s) => ({
-      length: dims.length ?? s.length,
-      width: dims.width ?? s.width,
-      depth: dims.depth ?? s.depth,
-    }))
+  setSizeId: (sizeId) => {
+    const size = findPoolSize(sizeId)
+    const placements = get().placements.map((p) => {
+      if (p.place === 'deck') {
+        const s = snapToDeck(p.x, p.z, size.length, size.width)
+        return { ...p, ...s }
+      }
+      const c = clampInPool(p.x, p.z, size.length, size.width)
+      return { ...p, ...c }
+    })
+    set({
+      sizeId,
+      length: size.length,
+      width: size.width,
+      depth: size.depth,
+      placements,
+    })
     get().recompute()
   },
-  setUnit: (unit) => set({ unit }),
   setStair: (stair) => {
-    set({ stair })
+    if (stair === 'Keine') {
+      set({ stair, placing: null })
+      get().recompute()
+      return
+    }
+    const item = getStairsForType(get().type).find((s) => s.id === stair)
+    set({
+      stair,
+      placing: {
+        catalogId: 'stair',
+        kind: 'stair',
+        place: item?.visual === 'Ecktreppe' ? 'corner' : 'wall',
+        label: item?.label || 'Treppe',
+      },
+    })
+    get().recompute()
+  },
+  setStairAnchor: ({ wall, corner }) => {
+    set({
+      stairWall: wall || get().stairWall,
+      stairCorner: corner || get().stairCorner,
+      placing: null,
+    })
+  },
+  setDisinfection: (disinfection) => {
+    set({ disinfection: get().disinfection === disinfection ? null : disinfection })
     get().recompute()
   },
   toggleOption: (key) => {
     set((s) => ({ options: { ...s.options, [key]: !s.options[key] } }))
     get().recompute()
   },
-  setPPColor: (ppColor) => {
-    set({ ppColor })
+  startPlacing: (catalogId) => {
+    const item = findPlaceable(catalogId)
+    if (!item) return
+    set({
+      placing: {
+        catalogId: item.id,
+        kind: item.kind,
+        place: item.place,
+        label: item.label,
+        exclusive: item.exclusive,
+      },
+    })
+  },
+  cancelPlacing: () => set({ placing: null }),
+  confirmPlacement: (snap) => {
+    const { placing } = get()
+    if (!placing) return
+    if (placing.kind === 'stair') {
+      set({
+        stairWall: snap.wall || 'west',
+        stairCorner: snap.corner || nearestFallbackCorner(snap),
+        placing: null,
+      })
+      return
+    }
+    const item = findPlaceable(placing.catalogId)
+    if (!item) return
+    set((s) => {
+      let next = s.placements
+      if (item.exclusive === true) {
+        next = next.filter((p) => p.catalogId !== item.id)
+      } else if (item.exclusive === 'robot') {
+        next = next.filter((p) => p.kind !== 'robot')
+      }
+      next = [
+        ...next,
+        {
+          id: uid(),
+          catalogId: item.id,
+          kind: item.kind,
+          place: item.place,
+          variant: item.variant || null,
+          x: snap.x,
+          z: snap.z,
+          rotY: snap.rotY,
+          wall: snap.wall,
+          corner: snap.corner,
+        },
+      ]
+      return { placements: next, placing: null }
+    })
     get().recompute()
   },
-  setSteelFinish: (steelFinish) => {
-    set({ steelFinish })
+  removePlacement: (id) => {
+    set((s) => ({ placements: s.placements.filter((p) => p.id !== id) }))
     get().recompute()
   },
+  removePlacementsByCatalog: (catalogId) => {
+    set((s) => ({ placements: s.placements.filter((p) => p.catalogId !== catalogId) }))
+    get().recompute()
+  },
+  setPPColor: (ppColor) => set({ ppColor }),
+  setSteelFinish: (steelFinish) => set({ steelFinish }),
   setLead: (patch) => set((s) => ({ lead: { ...s.lead, ...patch } })),
   setScene: (scene) => set({ scene }),
   setTimeOfDay: (timeOfDay) => set({ timeOfDay }),
   setDeck: (deck) => set({ deck }),
 
-  recompute: () => {
-    const { min, max } = calcPriceRange(get())
-    set({ priceMin: min, priceMax: max })
-  },
+  recompute: () => set({ price: calcPrice(get()) }),
 }))
 
-// Initialen Preis berechnen
+function nearestFallbackCorner(snap) {
+  if (snap.corner) return snap.corner
+  if (snap.wall === 'east') return 'ne'
+  if (snap.wall === 'south') return 'sw'
+  if (snap.wall === 'north') return 'nw'
+  return 'nw'
+}
+
 usePoolConfig.getState().recompute()

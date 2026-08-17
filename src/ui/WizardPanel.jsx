@@ -1,9 +1,9 @@
 import React from 'react'
 import { STEPS } from '../data/config'
-import { usePoolConfig } from '../hooks/usePoolConfig'
+import { usePoolConfig, formatCHF } from '../hooks/usePoolConfig'
 
 import StepPoolType from './steps/StepPoolType'
-import StepShape from './steps/StepShape'
+import StepPoolSystem from './steps/StepShape'
 import StepSize from './steps/StepSize'
 import StepStairs from './steps/StepStairs'
 import StepEquipment from './steps/StepEquipment'
@@ -11,20 +11,40 @@ import StepMaterial from './steps/StepMaterial'
 import StepSummary from './steps/StepSummary'
 import LeadForm from './steps/LeadForm'
 
-// Titel + Beschreibung je Schritt
 const META = {
-  type: { title: 'Pooltyp wählen', desc: 'Wählen Sie den Beckentyp, der am besten zu Ihrem Projekt passt.' },
-  shape: { title: 'Form wählen', desc: 'Wählen Sie die Form Ihres Pools.' },
-  size: { title: 'Grösse definieren', desc: 'Definieren Sie die gewünschten Masse Ihres Pools.' },
-  stairs: { title: 'Treppe auswählen', desc: 'Wählen Sie die Treppenvariante, die am besten zu Ihrem Pool passt.' },
-  equipment: { title: 'Ausstattung', desc: 'Bestimmen Sie die Ausstattung, die Ihren Pool noch komfortabler macht.' },
-  material: { title: 'Material und Farbe', desc: 'Wählen Sie das Material und die Farbe Ihres Pools.' },
-  summary: { title: 'Ihre Konfiguration', desc: 'Überprüfen Sie Ihre Auswahl. Ihr Pool wird live rechts dargestellt.' },
+  type: {
+    title: 'Material wählen',
+    desc: 'Wählen Sie zwischen Chromstahl- oder PP-Becken.',
+  },
+  system: {
+    title: 'Poolart wählen',
+    desc: 'Skimmer-Becken oder Überlauf-Pool (Infinity) mit Schwallbehälter.',
+  },
+  size: {
+    title: 'Grösse wählen',
+    desc: 'Wählen Sie eine der vordefinierten Beckengrössen (S bis Family).',
+  },
+  stairs: {
+    title: 'Treppe auswählen',
+    desc: 'Wählen Sie die Treppenvariante für Ihren Pool.',
+  },
+  equipment: {
+    title: 'Ausstattung',
+    desc: 'Filter ist immer enthalten. Ergänzen Sie Desinfektion und Zusatzausstattung.',
+  },
+  material: {
+    title: 'Farbe wählen',
+    desc: 'Wählen Sie die Farbe (PP) bzw. die Oberfläche (Chromstahl).',
+  },
+  summary: {
+    title: 'Ihre Konfiguration',
+    desc: 'Überprüfen Sie Ihre Auswahl. Ihr Pool wird live rechts dargestellt.',
+  },
 }
 
 const STEP_COMPONENTS = {
   type: StepPoolType,
-  shape: StepShape,
+  system: StepPoolSystem,
   size: StepSize,
   stairs: StepStairs,
   equipment: StepEquipment,
@@ -41,7 +61,6 @@ export default function WizardPanel() {
   const current = STEPS[step]
   const isLast = step === STEPS.length - 1
 
-  // Lead-Formular ist eine Unteransicht des letzten Schritts
   if (showLeadForm) {
     return (
       <div className="flex h-full flex-col">
@@ -65,20 +84,28 @@ export default function WizardPanel() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex-1 overflow-y-auto px-5 py-6 sm:px-8">
-        <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#32B4E6]">{`Schritt ${step + 1} / ${STEPS.length}`}</div>
+        <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#32B4E6]">
+          {`Schritt ${step + 1} / ${STEPS.length}`}
+        </div>
         <h2 className="text-xl font-bold text-gray-900">{meta.title}</h2>
         <p className="mb-6 mt-1 text-sm text-gray-500">{meta.desc}</p>
         <StepComp />
       </div>
-      {/* Auf dem Übersichts-Schritt liegt die Aktion im Step selbst */}
       {!isLast && <Footer onNext={next} onBack={prev} hideBack={step === 0} />}
     </div>
   )
 }
 
 function Footer({ onNext, onBack, hideBack, hideNext, backLabel = 'Zurück' }) {
+  const price = usePoolConfig((s) => s.price)
+
   return (
-    <div className="flex flex-none items-center gap-4 border-t border-gray-100 px-5 py-4 sm:px-8">
+    <div className="flex flex-none flex-col gap-3 border-t border-gray-100 px-5 py-4 sm:px-8">
+      <div className="flex items-baseline justify-between">
+        <span className="text-xs text-gray-500">Aktueller Richtpreis (VP, exkl. MwSt.)</span>
+        <span className="text-lg font-bold text-gray-900">{formatCHF(price)}</span>
+      </div>
+      <div className="flex items-center gap-4">
       {!hideNext && (
         <button
           onClick={onNext}
@@ -92,6 +119,7 @@ function Footer({ onNext, onBack, hideBack, hideNext, backLabel = 'Zurück' }) {
           {backLabel}
         </button>
       )}
+      </div>
     </div>
   )
 }

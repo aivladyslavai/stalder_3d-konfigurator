@@ -3,7 +3,7 @@ import { usePoolConfig } from '../hooks/usePoolConfig'
 
 // Becken-Typen zur Auswahl
 const TYPES = [
-  { id: 'Edelstahl', label: 'Edelstahl', sub: 'Premium · langlebig' },
+  { id: 'Chromstahl', label: 'Chromstahl', sub: 'Premium · langlebig' },
   { id: 'PP', label: 'PP-Becken', sub: 'Polypropylen · günstig' },
 ]
 
