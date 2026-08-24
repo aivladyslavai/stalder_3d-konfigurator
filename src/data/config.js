@@ -251,7 +251,7 @@ export const SCENE_OPTIONS = [
 ]
 export const TIME_OPTIONS = [
   { id: 'day', label: 'Tag' },
-  { id: 'dusk', label: 'Abend' },
+  { id: 'dusk', label: 'Nacht' },
 ]
 
 export const DECK_MATERIALS = [

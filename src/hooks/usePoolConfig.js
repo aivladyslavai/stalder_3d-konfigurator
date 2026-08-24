@@ -136,6 +136,7 @@ export function listSelectedLines(state) {
 export const usePoolConfig = create((set, get) => ({
   showLeadForm: false,
   topView: false,
+  camDist: 14,
 
   type: 'Chromstahl',
   poolSystem: 'Skimmer',
@@ -166,6 +167,8 @@ export const usePoolConfig = create((set, get) => ({
   openLeadForm: () => set({ showLeadForm: true }),
   closeLeadForm: () => set({ showLeadForm: false }),
   setTopView: (topView) => set({ topView }),
+  zoomIn: () => set((s) => ({ camDist: Math.max(8, s.camDist - 2), topView: false })),
+  zoomOut: () => set((s) => ({ camDist: Math.min(28, s.camDist + 2), topView: false })),
 
   setType: (type) => {
     const stair = ensureValidStair(type, get().stair)

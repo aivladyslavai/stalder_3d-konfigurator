@@ -64,7 +64,7 @@ function lighting(scene, time) {
   }
 }
 
-function CameraRig({ scene, length, width, topView }) {
+function CameraRig({ scene, length, width, topView, camDist }) {
   const { camera, controls } = useThree()
   useEffect(() => {
     if (topView) {
@@ -73,13 +73,14 @@ function CameraRig({ scene, length, width, topView }) {
     } else if (scene === 'indoor') {
       camera.position.set(length / 2 + 2.5, 3.1, width / 2 + 2.6)
     } else {
-      camera.position.set(9, 6, 11)
+      const d = camDist || 14
+      camera.position.set(d * 0.64, d * 0.43, d * 0.79)
     }
     if (controls) {
       controls.target.set(0, -0.5, 0)
       controls.update()
     }
-  }, [scene, topView, length, width, camera, controls])
+  }, [scene, topView, length, width, camDist, camera, controls])
   return null
 }
 
@@ -116,6 +117,7 @@ export default function Scene() {
     placements,
     placing,
     topView,
+    camDist,
   } = state
   const material = getPoolMaterial(state)
   const shape = visualShapeForSystem(poolSystem)
@@ -205,7 +207,7 @@ export default function Scene() {
         )}
       </Suspense>
 
-      <CameraRig scene={scene} length={length} width={width} topView={topView} />
+      <CameraRig scene={scene} length={length} width={width} topView={topView} camDist={camDist} />
       <OrbitControls
         makeDefault
         enabled={!placing}

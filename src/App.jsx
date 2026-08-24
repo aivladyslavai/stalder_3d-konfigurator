@@ -31,9 +31,30 @@ export default function App() {
             <button
               type="button"
               onClick={() => setTopView(!topView)}
-              className="pointer-events-auto rounded-md border border-white/50 bg-white/80 px-3 py-1.5 text-xs font-semibold text-[#002B6F] shadow-sm backdrop-blur"
+              className="pointer-events-auto inline-flex items-center gap-2 rounded-xl bg-white/90 px-3 py-2 text-xs font-semibold text-[#1a2b48] shadow-sm backdrop-blur"
             >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
               {topView ? 'Perspektive' : 'Top Ansicht'}
+            </button>
+          </div>
+
+          <div className="pointer-events-none absolute bottom-5 right-4 z-10 flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => usePoolConfig.getState().zoomIn()}
+              className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-lg font-semibold text-[#1a2b48] shadow-sm"
+            >
+              +
+            </button>
+            <button
+              type="button"
+              onClick={() => usePoolConfig.getState().zoomOut()}
+              className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-lg font-semibold text-[#1a2b48] shadow-sm"
+            >
+              −
             </button>
           </div>
 
