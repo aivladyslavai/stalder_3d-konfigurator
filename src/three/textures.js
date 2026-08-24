@@ -290,3 +290,113 @@ export function makeStoneNormalTexture(size = 256, scale = 24) {
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping
   return tex
 }
+
+/**
+ * Gebürstetes Chromstahl – Normalmap mit feinen Längsrillen.
+ */
+export function makeBrushedNormalTexture(size = 512, strength = 1.4) {
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = size
+  const ctx = canvas.getContext('2d')
+  const img = ctx.createImageData(size, size)
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const streak = valueNoise(x * 0.9, y * 28) * 2 - 1
+      const micro = valueNoise(x * 6, y * 90) * 2 - 1
+      let nx = (streak * 0.55 + micro * 0.25) * strength
+      let ny = micro * 0.08 * strength
+      let nz = 1
+      const len = Math.hypot(nx, ny, nz) || 1
+      const idx = (y * size + x) * 4
+      img.data[idx] = ((nx / len) * 0.5 + 0.5) * 255
+      img.data[idx + 1] = ((ny / len) * 0.5 + 0.5) * 255
+      img.data[idx + 2] = ((nz / len) * 0.5 + 0.5) * 255
+      img.data[idx + 3] = 255
+    }
+  }
+  ctx.putImageData(img, 0, 0)
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping
+  tex.anisotropy = 8
+  return tex
+}
+
+/**
+ * Roughness-Map für gebürsteten Stahl (helle = rauer).
+ */
+export function makeBrushedRoughnessTexture(size = 512) {
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = size
+  const ctx = canvas.getContext('2d')
+  const img = ctx.createImageData(size, size)
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const v = 120 + valueNoise(x * 0.7, y * 22) * 90 + valueNoise(x * 4, y * 60) * 30
+      const c = Math.max(80, Math.min(220, v))
+      const idx = (y * size + x) * 4
+      img.data[idx] = c
+      img.data[idx + 1] = c
+      img.data[idx + 2] = c
+      img.data[idx + 3] = 255
+    }
+  }
+  ctx.putImageData(img, 0, 0)
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping
+  return tex
+}
+
+/**
+ * Feine PP-Oberflächenkörnung (Albedo-Variation).
+ */
+export function makePPNoiseTexture(size = 256, baseColor = '#EAF1F5') {
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = size
+  const ctx = canvas.getContext('2d')
+  const base = new THREE.Color(baseColor)
+  const img = ctx.createImageData(size, size)
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const n = 0.94 + fbm((x / size) * 10, (y / size) * 10, 4) * 0.12
+      const idx = (y * size + x) * 4
+      img.data[idx] = Math.min(255, base.r * 255 * n)
+      img.data[idx + 1] = Math.min(255, base.g * 255 * n)
+      img.data[idx + 2] = Math.min(255, base.b * 255 * n)
+      img.data[idx + 3] = 255
+    }
+  }
+  ctx.putImageData(img, 0, 0)
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping
+  tex.colorSpace = THREE.SRGBColorSpace
+  tex.anisotropy = 4
+  return tex
+}
+
+/**
+ * Rasen-Textur für das Grundstück um die Terrasse.
+ */
+export function makeGrassTexture(size = 512) {
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = size
+  const ctx = canvas.getContext('2d')
+  const img = ctx.createImageData(size, size)
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const n = fbm((x / size) * 18, (y / size) * 18, 5)
+      const blade = valueNoise(x * 0.35, y * 2.4)
+      const g = 72 + n * 55 + blade * 18
+      const idx = (y * size + x) * 4
+      img.data[idx] = g * 0.45
+      img.data[idx + 1] = g
+      img.data[idx + 2] = g * 0.38
+      img.data[idx + 3] = 255
+    }
+  }
+  ctx.putImageData(img, 0, 0)
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping
+  tex.colorSpace = THREE.SRGBColorSpace
+  tex.anisotropy = 4
+  return tex
+}

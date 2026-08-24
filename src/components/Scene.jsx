@@ -1,6 +1,6 @@
 import React, { Suspense, useEffect, useMemo } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
-import { OrbitControls, Environment, Sky, SoftShadows } from '@react-three/drei'
+import { OrbitControls, Environment, Sky, SoftShadows, ContactShadows } from '@react-three/drei'
 import { EffectComposer, Bloom, Vignette, ToneMapping, SMAA } from '@react-three/postprocessing'
 import { ToneMappingMode } from 'postprocessing'
 import * as THREE from 'three'
@@ -28,36 +28,39 @@ function lighting(scene, time) {
   if (scene === 'indoor') {
     return {
       env: 'apartment',
-      envIntensity: 0.55,
-      bg: '#11151b',
+      envIntensity: 0.7,
+      bg: '#121821',
       sky: false,
-      fog: ['#11151b', 22, 55],
-      ambient: 0.3,
-      sun: { pos: [6, 11, 8], intensity: 0.7, color: '#fff2dc' },
-      hemi: 0.25,
+      fog: ['#121821', 20, 50],
+      ambient: 0.28,
+      sun: { pos: [6, 11, 8], intensity: 0.85, color: '#fff2dc' },
+      hemi: 0.28,
+      night: true,
     }
   }
   if (time === 'dusk') {
     return {
-      env: 'sunset',
-      envIntensity: 0.35,
-      bg: '#27344a',
-      sky: { turbidity: 12, rayleigh: 1.6, sun: [-2, 0.4, -3] },
-      fog: ['#27344a', 26, 62],
-      ambient: 0.14,
-      sun: { pos: [-6, 5, -4], intensity: 0.9, color: '#ffb27a' },
-      hemi: 0.2,
+      env: 'night',
+      envIntensity: 0.28,
+      bg: '#0b121c',
+      sky: { turbidity: 10, rayleigh: 2.4, sun: [-4, 0.12, -3] },
+      fog: ['#0b121c', 16, 46],
+      ambient: 0.07,
+      sun: { pos: [-9, 2.2, -5], intensity: 0.28, color: '#ff8a4a' },
+      hemi: 0.1,
+      night: true,
     }
   }
   return {
-    env: 'sunset',
-    envIntensity: 0.5,
-    bg: '#cfe3f2',
-    sky: { turbidity: 6, rayleigh: 0.45, sun: [6, 4, 3] },
-    fog: ['#cfe3f2', 34, 70],
-    ambient: 0.22,
-    sun: { pos: [9, 13, 7], intensity: 2.0, color: '#fff3e2' },
-    hemi: 0.35,
+    env: 'park',
+    envIntensity: 0.85,
+    bg: '#b7d2e6',
+    sky: { turbidity: 3.5, rayleigh: 0.55, sun: [9, 7, 4] },
+    fog: ['#c4dceb', 42, 95],
+    ambient: 0.3,
+    sun: { pos: [11, 17, 8], intensity: 2.55, color: '#fff5e6' },
+    hemi: 0.42,
+    night: false,
   }
 }
 
@@ -120,8 +123,12 @@ export default function Scene() {
   const acc = { poolLength: length, poolWidth: width, poolDepth: depth }
   const L = lighting(scene, timeOfDay)
   const placingStairs = placing?.kind === 'stair'
+  const night = !!L.night
+  const ledOn = !!options.led
 
   const maxDist = useMemo(() => Math.max(18, length + width + 8), [length, width])
+  const bloomIntensity = night ? (ledOn ? 1.35 : 0.75) : 0.5
+  const bloomThreshold = night ? (ledOn ? 0.45 : 0.7) : 0.92
 
   return (
     <Canvas
@@ -137,9 +144,9 @@ export default function Scene() {
         <Sky turbidity={L.sky.turbidity} rayleigh={L.sky.rayleigh} mieCoefficient={0.005} mieDirectionalG={0.85} sunPosition={L.sky.sun} />
       )}
 
-      {!placing && <SoftShadows size={26} samples={16} focus={0.6} />}
+      {!placing && <SoftShadows size={22} samples={14} focus={0.65} />}
       <ambientLight intensity={L.ambient} />
-      <hemisphereLight args={['#dff0ff', '#b8a98c', L.hemi]} />
+      <hemisphereLight args={[night ? '#1a2a44' : '#dff0ff', night ? '#1a1510' : '#b8a98c', L.hemi]} />
       <directionalLight
         position={L.sun.pos}
         intensity={L.sun.intensity}
@@ -148,31 +155,33 @@ export default function Scene() {
         shadow-mapSize-width={placing ? 1024 : 2048}
         shadow-mapSize-height={placing ? 1024 : 2048}
         shadow-bias={-0.0002}
-        shadow-camera-left={-16}
-        shadow-camera-right={16}
-        shadow-camera-top={16}
-        shadow-camera-bottom={-16}
+        shadow-camera-left={-18}
+        shadow-camera-right={18}
+        shadow-camera-top={18}
+        shadow-camera-bottom={-18}
         shadow-camera-near={1}
-        shadow-camera-far={45}
+        shadow-camera-far={50}
       />
+      {!night && (
+        <directionalLight position={[-8, 6, -6]} intensity={0.35} color="#a8c8e8" />
+      )}
 
       <Suspense fallback={null}>
-        <Environment preset={L.env} environmentIntensity={L.envIntensity} />
+        <Environment preset={L.env} environmentIntensity={L.envIntensity} background={false} />
         <Deck length={length} width={width} shape={shape} deck={deck} />
         {scene === 'indoor' && <Indoor poolLength={length} poolWidth={width} />}
         <Surroundings poolLength={length} poolWidth={width} scene={scene} />
         <Pool length={length} width={width} depth={depth} material={material} shape={shape} />
         {!options.rolladen && !placing && (
-          <Caustics length={length} width={width} depth={depth} shape={shape} led={options.led} />
+          <Caustics length={length} width={width} depth={depth} shape={shape} led={ledOn} night={night} />
         )}
         {!options.rolladen && (
-          <Water length={length} width={width} shape={shape} led={options.led} pickable={!placing} />
+          <Water length={length} width={width} shape={shape} led={ledOn} night={night} pickable={!placing} />
         )}
-        {/* Während Platzierung nur Ghost zeigen – verhindert Doppel-Render + Lag */}
         {stairItem.visual && !placingStairs && (
           <Stairs type={stairItem.visual} steps={stairItem.steps} wall={stairWall} corner={stairCorner} {...acc} />
         )}
-        {options.led && <LedStrip {...acc} />}
+        {ledOn && <LedStrip {...acc} night={night} />}
         {options.rolladen && <Cover {...acc} />}
         <PlacedItems placements={placements} depth={depth} />
         {placing && (
@@ -183,6 +192,15 @@ export default function Scene() {
             placing={placing}
             stairWall={stairWall}
             stairCorner={stairCorner}
+          />
+        )}
+        {!placing && scene === 'outdoor' && (
+          <ContactShadows
+            position={[0, -0.12, 0]}
+            opacity={night ? 0.35 : 0.55}
+            scale={Math.max(18, length + 12)}
+            blur={2.4}
+            far={8}
           />
         )}
       </Suspense>
@@ -201,15 +219,10 @@ export default function Scene() {
       />
 
       <EffectComposer multisampling={0} enabled={!placing}>
-        <Bloom
-          mipmapBlur
-          luminanceThreshold={scene === 'indoor' || timeOfDay === 'dusk' ? 0.7 : 0.9}
-          luminanceSmoothing={0.25}
-          intensity={scene === 'indoor' || timeOfDay === 'dusk' ? 0.9 : 0.55}
-        />
+        <Bloom mipmapBlur luminanceThreshold={bloomThreshold} luminanceSmoothing={0.28} intensity={bloomIntensity} />
         <SMAA />
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
-        <Vignette eskil={false} offset={0.22} darkness={0.5} />
+        <Vignette eskil={false} offset={0.2} darkness={night ? 0.65 : 0.45} />
       </EffectComposer>
     </Canvas>
   )

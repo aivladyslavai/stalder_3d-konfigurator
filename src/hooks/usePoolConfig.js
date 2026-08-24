@@ -61,10 +61,28 @@ export function formatCHF(value) {
 export function getPoolMaterial(state) {
   if (state.type === 'PP') {
     const c = findPPColor(state.ppColor)
-    return { color: c.color, metalness: 0.0, roughness: 0.55 }
+    return {
+      kind: 'pp',
+      color: c.color,
+      metalness: 0.04,
+      roughness: 0.38,
+      clearcoat: 0.65,
+      clearcoatRoughness: 0.22,
+      envMapIntensity: 0.95,
+    }
   }
   const f = findSteelFinish(state.steelFinish)
-  return { color: f.color, metalness: f.metalness, roughness: f.roughness }
+  const polished = f.id === 'Poliert'
+  return {
+    kind: 'steel',
+    finish: f.id,
+    color: f.color,
+    metalness: polished ? 1 : 0.94,
+    roughness: polished ? 0.06 : 0.34,
+    clearcoat: polished ? 1 : 0.2,
+    clearcoatRoughness: polished ? 0.04 : 0.45,
+    envMapIntensity: polished ? 2.4 : 1.45,
+  }
 }
 
 export function listSelectedLines(state) {
