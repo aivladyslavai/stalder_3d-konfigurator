@@ -191,6 +191,8 @@ export const usePoolConfig = create((set, get) => ({
         kind: 'stair',
         place: item?.visual === 'Ecktreppe' ? 'corner' : 'wall',
         label: item?.label || 'Treppe',
+        visual: item?.visual || 'Ecktreppe',
+        steps: item?.steps || 4,
       },
     })
     get().recompute()
@@ -220,6 +222,7 @@ export const usePoolConfig = create((set, get) => ({
         place: item.place,
         label: item.label,
         exclusive: item.exclusive,
+        variant: item.variant || null,
       },
     })
   },

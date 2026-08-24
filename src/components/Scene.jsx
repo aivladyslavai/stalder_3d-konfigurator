@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useMemo, useState } from 'react'
+import React, { Suspense, useEffect, useMemo } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls, Environment, Sky, SoftShadows } from '@react-three/drei'
 import { EffectComposer, Bloom, Vignette, ToneMapping, SMAA } from '@react-three/postprocessing'
@@ -20,9 +20,9 @@ import Jet from './Accessories/Jets'
 import SchwallDusche from './Accessories/SchwallDusche'
 import Liege, { Bank } from './Accessories/Liege'
 import Robot from './Accessories/Robot'
+import PlacementLayer from './PlacementLayer'
 import { usePoolConfig, getPoolMaterial } from '../hooks/usePoolConfig'
 import { visualShapeForSystem, findStair } from '../data/config'
-import { resolveSnap } from '../three/placement'
 
 function lighting(scene, time) {
   if (scene === 'indoor') {
@@ -80,44 +80,6 @@ function CameraRig({ scene, length, width, topView }) {
   return null
 }
 
-function PlacementLayer({ length, width, placing }) {
-  const confirmPlacement = usePoolConfig((s) => s.confirmPlacement)
-  const [ghost, setGhost] = useState(null)
-  const isDeck = placing.place === 'deck'
-  const isCorner = placing.place === 'corner'
-
-  const snapPoint = (point) =>
-    resolveSnap(placing.place === 'corner' ? 'wall' : placing.place, point.x, point.z, length, width, isCorner)
-
-  return (
-    <>
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, isDeck ? 0.03 : 0.05, 0]}
-        renderOrder={20}
-        onPointerMove={(e) => {
-          e.stopPropagation()
-          setGhost(snapPoint(e.point))
-        }}
-        onPointerDown={(e) => {
-          e.stopPropagation()
-          const snap = snapPoint(e.point)
-          confirmPlacement(snap)
-        }}
-      >
-        <planeGeometry args={isDeck ? [length + 8, width + 8] : [Math.max(0.5, length - 0.28), Math.max(0.5, width - 0.28)]} />
-        <meshBasicMaterial color="#32B4E6" transparent opacity={0.18} depthWrite={false} depthTest={false} side={THREE.DoubleSide} />
-      </mesh>
-      {ghost && (
-        <mesh position={[ghost.x, 0.08, ghost.z]}>
-          <sphereGeometry args={[0.14, 16, 16]} />
-          <meshBasicMaterial color="#32B4E6" transparent opacity={0.85} />
-        </mesh>
-      )}
-    </>
-  )
-}
-
 function PlacedItems({ placements, depth }) {
   return placements.map((p) => {
     const pos = [p.x, p.kind === 'heatpump' ? 0 : p.kind === 'schwall' ? 0 : -depth / 2, p.z]
@@ -157,13 +119,14 @@ export default function Scene() {
   const stairItem = findStair(type, stair)
   const acc = { poolLength: length, poolWidth: width, poolDepth: depth }
   const L = lighting(scene, timeOfDay)
+  const placingStairs = placing?.kind === 'stair'
 
   const maxDist = useMemo(() => Math.max(18, length + width + 8), [length, width])
 
   return (
     <Canvas
-      shadows
-      dpr={[1, 2]}
+      shadows={!placing}
+      dpr={[1, placing ? 1.25 : 2]}
       camera={{ position: [9, 6, 11], fov: 40 }}
       gl={{ antialias: false, toneMapping: THREE.NoToneMapping, powerPreference: 'high-performance' }}
     >
@@ -174,16 +137,16 @@ export default function Scene() {
         <Sky turbidity={L.sky.turbidity} rayleigh={L.sky.rayleigh} mieCoefficient={0.005} mieDirectionalG={0.85} sunPosition={L.sky.sun} />
       )}
 
-      <SoftShadows size={26} samples={16} focus={0.6} />
+      {!placing && <SoftShadows size={26} samples={16} focus={0.6} />}
       <ambientLight intensity={L.ambient} />
       <hemisphereLight args={['#dff0ff', '#b8a98c', L.hemi]} />
       <directionalLight
         position={L.sun.pos}
         intensity={L.sun.intensity}
         color={L.sun.color}
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        castShadow={!placing}
+        shadow-mapSize-width={placing ? 1024 : 2048}
+        shadow-mapSize-height={placing ? 1024 : 2048}
         shadow-bias={-0.0002}
         shadow-camera-left={-16}
         shadow-camera-right={16}
@@ -199,15 +162,29 @@ export default function Scene() {
         {scene === 'indoor' && <Indoor poolLength={length} poolWidth={width} />}
         <Surroundings poolLength={length} poolWidth={width} scene={scene} />
         <Pool length={length} width={width} depth={depth} material={material} shape={shape} />
-        {!options.rolladen && <Caustics length={length} width={width} depth={depth} shape={shape} led={options.led} />}
-        {!options.rolladen && <Water length={length} width={width} shape={shape} led={options.led} pickable={!placing} />}
-        {stairItem.visual && (
+        {!options.rolladen && !placing && (
+          <Caustics length={length} width={width} depth={depth} shape={shape} led={options.led} />
+        )}
+        {!options.rolladen && (
+          <Water length={length} width={width} shape={shape} led={options.led} pickable={!placing} />
+        )}
+        {/* Während Platzierung nur Ghost zeigen – verhindert Doppel-Render + Lag */}
+        {stairItem.visual && !placingStairs && (
           <Stairs type={stairItem.visual} steps={stairItem.steps} wall={stairWall} corner={stairCorner} {...acc} />
         )}
         {options.led && <LedStrip {...acc} />}
         {options.rolladen && <Cover {...acc} />}
         <PlacedItems placements={placements} depth={depth} />
-        {placing && <PlacementLayer length={length} width={width} placing={placing} />}
+        {placing && (
+          <PlacementLayer
+            length={length}
+            width={width}
+            depth={depth}
+            placing={placing}
+            stairWall={stairWall}
+            stairCorner={stairCorner}
+          />
+        )}
       </Suspense>
 
       <CameraRig scene={scene} length={length} width={width} topView={topView} />
@@ -223,7 +200,7 @@ export default function Scene() {
         dampingFactor={0.08}
       />
 
-      <EffectComposer multisampling={0}>
+      <EffectComposer multisampling={0} enabled={!placing}>
         <Bloom
           mipmapBlur
           luminanceThreshold={scene === 'indoor' || timeOfDay === 'dusk' ? 0.7 : 0.9}
