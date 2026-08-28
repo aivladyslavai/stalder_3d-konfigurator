@@ -104,14 +104,15 @@ function Water({
   const r = cornerRadiusFor(shape)
   const baseY = waterLevelFor(shape)
   const isInfinity = shape === 'Infinity'
-  const hx = (length - t) / 2
-  const hz = (width - t) / 2
+  const waterCut = isInfinity ? t : t * 2 - 0.01
+  const hx = (length - waterCut) / 2
+  const hz = (width - waterCut) / 2
   const cornerR = Math.max(0, r - t)
 
   const dense = Boolean(jet)
   const geometry = useMemo(
-    () => makeWaterGeometry(length, width, r, t, dense),
-    [length, width, r, t, dense],
+    () => makeWaterGeometry(length, width, r, waterCut, dense),
+    [length, width, r, waterCut, dense],
   )
 
   const skyEnv = useMemo(() => {

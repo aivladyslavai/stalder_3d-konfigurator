@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { WALL_THICKNESS } from '../data/config'
 
 // Eckradius je Beckenform (m)
 export function cornerRadiusFor(shape) {
@@ -11,7 +12,7 @@ export function waterLevelFor(shape) {
     case 'Infinity':
       return -0.025 // randvoll bis zur Überlaufkante
     case 'Skimmer':
-      return -0.17 // tiefer (Skimmer-Prinzip)
+      return -0.02
     default:
       return -0.1
   }
@@ -21,9 +22,31 @@ export function waterLevelFor(shape) {
 export const GRATE_WIDTH = 0.2
 export const GRATE_GAP = 0.02
 
+/** Sichtbare dunkle Linie zwischen Terrasse und Wasser beim Skimmer (m). */
+export const SKIMMER_COPING = 0.012
+
 /** Zusatzmass, das Terrasse und Rasen rund ums Becken freilassen müssen. */
 export function overflowInsetFor(shape) {
   return shape === 'Infinity' ? 2 * (GRATE_WIDTH + GRATE_GAP) : 0
+}
+
+/**
+ * Terrassen-Aussparung: Überlauf lässt Platz für den Rost,
+ * Skimmer liegt bündig – die Terrasse reicht bis an die schmale Einfassung.
+ */
+export function deckOpeningFor(length, width, shape) {
+  const r = cornerRadiusFor(shape)
+  if (shape === 'Infinity') {
+    const extra = overflowInsetFor(shape)
+    return { length: length + extra, width: width + extra, radius: r + extra / 2 }
+  }
+  const t = WALL_THICKNESS
+  const c = SKIMMER_COPING
+  return {
+    length: length - 2 * t + 2 * c,
+    width: width - 2 * t + 2 * c,
+    radius: Math.max(0, r - t + c),
+  }
 }
 
 /**

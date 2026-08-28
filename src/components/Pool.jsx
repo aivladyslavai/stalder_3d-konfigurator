@@ -7,13 +7,14 @@ import {
   cornerRadiusFor,
   GRATE_WIDTH,
   GRATE_GAP,
+  SKIMMER_COPING,
 } from '../three/footprint'
 
 /**
  * Becken (Pool) – formabhängig prozedural:
  *  - Wände + Boden folgen dem Grundriss (eckig oder abgerundet = Individuelle Form)
- *  - umlaufende Edelstahl-Randeinfassung (bei Infinity vorne offen = Überlaufkante)
- *  - Skimmer-Deckel bei Skimmer-Pool
+ *  - Skimmer: bündig im Boden, schmale dunkle Einfassung
+ *  - Infinity: umlaufende Überlaufrinne
  * Oberkante bei y = 0, Becken nach unten.
  *
  * Props: { length, width, depth, material, shape }
@@ -92,7 +93,7 @@ function Pool({ length, width, depth, material, shape }) {
     outer.holes.push(innerHole)
     const walls = new THREE.ExtrudeGeometry(outer, { depth, bevelEnabled: false, steps: 1 })
     walls.rotateX(-Math.PI / 2)
-    walls.translate(0, -depth, 0) // Oberkante auf y = 0
+    walls.translate(0, -depth - 0.002, 0) // knapp unter der Terrasse, kein Z-Fight
 
     // Boden
     const floorShape = roundedRectShape(length - 2 * t, width - 2 * t, Math.max(0, r - t))
@@ -100,14 +101,18 @@ function Pool({ length, width, depth, material, shape }) {
     floor.rotateX(-Math.PI / 2)
     floor.translate(0, -depth + 0.02, 0)
 
-    // Randeinfassung als Ring (nur wenn nicht Infinity)
+    // Nur die feine sichtbare Linie am Wasser; die Terrasse deckt den Rest der Wandkrone.
     let rim = null
     if (!isInfinity) {
-      const rimOuter = roundedRectShape(length + 0.24, width + 0.24, r + 0.12)
-      rimOuter.holes.push(roundedRectShape(length, width, r))
-      rim = new THREE.ExtrudeGeometry(rimOuter, { depth: 0.06, bevelEnabled: false })
+      const c = SKIMMER_COPING
+      const innerL = length - 2 * t
+      const innerW = width - 2 * t
+      const innerR = Math.max(0, r - t)
+      const rimOuter = roundedRectShape(innerL + 2 * c, innerW + 2 * c, innerR + c)
+      rimOuter.holes.push(roundedRectShape(innerL, innerW, innerR))
+      rim = new THREE.ExtrudeGeometry(rimOuter, { depth: 0.014, bevelEnabled: false })
       rim.rotateX(-Math.PI / 2)
-      rim.translate(0, -0.04, 0)
+      rim.translate(0, -0.014, 0)
     }
     return { walls, floor, rim }
   }, [length, width, depth, r, t, isInfinity])
@@ -156,13 +161,11 @@ function Pool({ length, width, depth, material, shape }) {
         metalness: material.metalness,
         envMapIntensity: 0.75,
       }
-  const steel = {
-    color: '#eef3f6',
-    metalness: 0.96,
-    roughness: 0.14,
-    envMapIntensity: 2.0,
-    clearcoat: 0.4,
-    clearcoatRoughness: 0.18,
+  const coping = {
+    color: '#2a3138',
+    metalness: 0.55,
+    roughness: 0.42,
+    envMapIntensity: 0.7,
   }
 
   return (
@@ -184,21 +187,21 @@ function Pool({ length, width, depth, material, shape }) {
         )}
       </mesh>
 
-      {/* Randeinfassung */}
+      {/* Schmale dunkle Einfassung, bündig mit der Terrasse */}
       {geo.rim && (
-        <mesh geometry={geo.rim} castShadow receiveShadow>
-          <meshPhysicalMaterial {...steel} />
+        <mesh geometry={geo.rim} receiveShadow>
+          <meshStandardMaterial {...coping} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
         </mesh>
       )}
 
       {/* Überlauf: umlaufende Rinne mit Edelstahlrost */}
       {isInfinity && <OverflowGrate length={length} width={width} />}
 
-      {/* Skimmer-Deckel auf dem hinteren Rand */}
+      {/* Skimmer-Schlitz in der nördlichen Einfassung */}
       {isSkimmer && (
-        <mesh position={[halfL * 0.4, 0.001, -halfW - 0.06]} castShadow>
-          <boxGeometry args={[0.3, 0.03, 0.22]} />
-          <meshPhysicalMaterial color="#e8eef2" roughness={0.16} metalness={0.94} envMapIntensity={1.9} />
+        <mesh position={[halfL * 0.28, 0.001, -(halfW - t) - SKIMMER_COPING * 0.45]} receiveShadow>
+          <boxGeometry args={[0.34, 0.004, SKIMMER_COPING * 0.72]} />
+          <meshStandardMaterial color="#0e1114" metalness={0.4} roughness={0.5} />
         </mesh>
       )}
     </group>
