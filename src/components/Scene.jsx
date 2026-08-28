@@ -430,9 +430,10 @@ export default function Scene() {
           waterY={waterLevelFor(shape)}
           showFloat
           rolladen={rolladen}
+          jet={jetFlow}
         />
         <Pool length={length} width={width} depth={depth} material={material} shape={shape} />
-        <Caustics length={length} width={width} depth={depth} shape={shape} led={led} />
+        <Caustics length={length} width={width} depth={depth} shape={shape} led={led} jet={jetFlow} />
         <Water
           length={length}
           width={width}

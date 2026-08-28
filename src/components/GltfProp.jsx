@@ -4,6 +4,36 @@ import * as THREE from 'three'
 import { prepareGltf } from '../three/prepareGltf'
 import { extendGltfLoader } from '../three/gltfSpecGloss'
 
+function applyVinyl(root) {
+  root.traverse((o) => {
+    if (!o.isMesh || !o.material) return
+    const mats = Array.isArray(o.material) ? o.material : [o.material]
+    const next = mats.map((m) => {
+      if (m.userData?.vinyl) return m
+      const phys = new THREE.MeshPhysicalMaterial({
+        map: m.map || null,
+        color: m.color ? m.color.clone() : new THREE.Color('#f3a7b8'),
+        roughness: 0.3,
+        metalness: 0.04,
+        envMapIntensity: 1.05,
+        clearcoat: 0.58,
+        clearcoatRoughness: 0.22,
+        sheen: 0.22,
+        sheenColor: new THREE.Color('#ffd0dc'),
+        sheenRoughness: 0.4,
+        specularIntensity: 0.85,
+        side: m.side,
+      })
+      phys.userData.vinyl = true
+      phys.polygonOffset = true
+      phys.polygonOffsetFactor = -1
+      phys.polygonOffsetUnits = -1
+      return phys
+    })
+    o.material = next.length === 1 ? next[0] : next
+  })
+}
+
 function usePrepared(url, opts) {
   const { scene } = useGLTF(url, true, true, extendGltfLoader)
   useLayoutEffect(() => {
@@ -17,16 +47,7 @@ function usePrepared(url, opts) {
         if (m.map) m.map.colorSpace = THREE.SRGBColorSpace
         if (m.emissiveIntensity != null) m.emissiveIntensity = Math.min(m.emissiveIntensity, 0.18)
         if (m.isMeshBasicMaterial) m.toneMapped = true
-        if (opts.vinyl) {
-          m.metalness = 0
-          m.roughness = Math.max(m.roughness || 0, 0.9)
-          m.envMapIntensity = 0
-          if (m.emissive) m.emissive.setRGB(0, 0, 0)
-          if (m.emissiveIntensity != null) m.emissiveIntensity = 0
-          if (m.specularIntensity != null) m.specularIntensity = 0.12
-          m.envMap = null
-          return
-        }
+        if (opts.vinyl) return
         if (opts.foliage) {
           m.metalness = 0
           m.side = THREE.DoubleSide
@@ -46,9 +67,11 @@ function usePrepared(url, opts) {
       })
     })
   }, [scene, opts.foliage, opts.vinyl])
-  return useMemo(
-    () => prepareGltf(scene, opts),
-    [
+  return useMemo(() => {
+    const root = prepareGltf(scene, opts)
+    if (opts.vinyl) applyVinyl(root)
+    return root
+  }, [
       scene,
       opts.height,
       opts.xz,

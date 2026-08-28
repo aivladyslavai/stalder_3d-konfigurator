@@ -45,9 +45,9 @@ function makeWaterGeometry(length, width, radius, wall, dense = false) {
   const hx = lw / 2
   const hz = ww / 2
   const r = Math.max(0, Math.min(radius - wall, hx - 0.02, hz - 0.02))
-  const dens = dense ? 22 : 12
-  const segX = Math.max(32, Math.min(110, Math.ceil(lw * dens)))
-  const segZ = Math.max(20, Math.min(72, Math.ceil(ww * dens)))
+  const dens = dense ? 26 : 12
+  const segX = Math.max(32, Math.min(120, Math.ceil(lw * dens)))
+  const segZ = Math.max(20, Math.min(80, Math.ceil(ww * dens)))
   const g = new THREE.PlaneGeometry(lw, ww, segX, segZ)
   g.rotateX(-Math.PI / 2)
   if (r > 0.001) {
@@ -62,7 +62,7 @@ function makeWaterGeometry(length, width, radius, wall, dense = false) {
   return g
 }
 
-const WAVE_KEY = 'wj5'
+const WAVE_KEY = 'wj14'
 
 function patchWaveMaterial(mat) {
   if (!mat || mat.userData.waveKey === WAVE_KEY) return
@@ -213,9 +213,9 @@ function Water({
         transmission={1}
         thickness={thickness}
         ior={1.333}
-        roughness={0.045}
+        roughness={0.038}
         metalness={0}
-        chromaticAberration={0}
+        chromaticAberration={0.012}
         anisotropicBlur={0.01}
         distortion={0}
         distortionScale={0}
@@ -224,7 +224,7 @@ function Water({
         attenuationColor={led ? '#8fe4fb' : '#57b3cf'}
         color="#dceef5"
         envMap={skyEnv}
-        envMapIntensity={envMode === 'day' ? 0.78 : 0.7}
+        envMapIntensity={envMode === 'day' ? 0.88 : 0.76}
         side={THREE.FrontSide}
       />
     </mesh>

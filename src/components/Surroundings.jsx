@@ -1,8 +1,10 @@
 import React, { useLayoutEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
+import * as THREE from 'three'
 import { GltfProp, GltfCopies } from './GltfProp'
 import { FLOAT_LAYER, SCENERY_LAYER, applyLayer, registerFloatGroup } from '../three/layers'
+import { sampleWaterSurface } from '../three/waterShader'
 
 /**
  * Möblierung der Terrasse plus die mitgelieferten GLB-Pflanzen und der Schwimmring.
@@ -75,11 +77,25 @@ function SideTable({ position }) {
   )
 }
 
-function FloatingSwan({ position, rotationY, height }) {
+function FloatingSwan({ position, rotationY, height, jet = null, poolLength = 5, poolWidth = 2.5 }) {
   const ref = useRef()
-  const baseY = position[1]
-  const x = position[0]
-  const z = position[2]
+  const foamRef = useRef()
+  const pose = useRef({
+    x: position[0],
+    z: position[2],
+    y: position[1],
+    pitch: 0,
+    roll: 0,
+    yaw: rotationY,
+  })
+  const jetRef = useRef(jet)
+  jetRef.current = jet
+  const homeX = position[0]
+  const homeZ = position[2]
+  const waterY = position[1]
+  const RING = 0.22
+  const maxX = Math.max(0.45, poolLength / 2 - 0.85)
+  const maxZ = Math.max(0.35, poolWidth / 2 - 0.7)
 
   useLayoutEffect(() => {
     const g = ref.current
@@ -89,20 +105,88 @@ function FloatingSwan({ position, rotationY, height }) {
     return registerFloatGroup(g)
   }, [])
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, dt) => {
     const g = ref.current
     if (!g) return
     const t = clock.elapsedTime
-    const heave = Math.sin(t * 0.85 + x * 0.7) * 0.03 + Math.sin(t * 1.33 + z) * 0.014
-    g.position.y = baseY + heave
-    g.rotation.x = Math.sin(t * 0.62 + z) * 0.1 + Math.sin(t * 1.21) * 0.035
-    g.rotation.z = Math.cos(t * 0.54 + x) * 0.09 + Math.sin(t * 0.97) * 0.03
-    g.rotation.y = rotationY + Math.sin(t * 0.22) * 0.08
+    const flow = jetRef.current
+    const step = Math.min(Math.max(dt || 0.016, 0.008), 0.04)
+    const dampPos = 1 - Math.exp(-step * 1.05)
+    const dampY = 1 - Math.exp(-step * 1.7)
+    const dampTilt = 1 - Math.exp(-step * 0.75)
+
+    const wanderX = Math.sin(t * 0.07) * 0.05 + Math.sin(t * 0.031 + 1.4) * 0.028
+    const wanderZ = Math.cos(t * 0.055) * 0.03 + Math.sin(t * 0.04 + 0.6) * 0.02
+    let tx = homeX + wanderX
+    let tz = homeZ + wanderZ
+    if (flow) {
+      const dl = Math.hypot(flow.dir[0], flow.dir[1]) || 1
+      const dx = flow.dir[0] / dl
+      const dz = flow.dir[1] / dl
+      const along = (tx - flow.origin[0]) * dx + (tz - flow.origin[1]) * dz
+      const across = (tx - flow.origin[0]) * -dz + (tz - flow.origin[1]) * dx
+      if (along > 0 && along < 2.5 && Math.abs(across) < 0.38) {
+        const push = 0.012 * Math.sin(t * 0.18 + along * 0.35)
+        tx += dx * push
+        tz += dz * push
+      }
+    }
+    tx = Math.max(-maxX, Math.min(maxX, tx))
+    tz = Math.max(-maxZ, Math.min(maxZ, tz))
+
+    const p = pose.current
+    p.x += (tx - p.x) * dampPos
+    p.z += (tz - p.z) * dampPos
+
+    const yawTarget = rotationY + Math.sin(t * 0.08) * 0.05 + Math.sin(t * 0.032) * 0.02
+    p.yaw += (yawTarget - p.yaw) * dampPos
+
+    const fwdX = Math.sin(p.yaw)
+    const fwdZ = Math.cos(p.yaw)
+    const rightX = Math.cos(p.yaw)
+    const rightZ = -Math.sin(p.yaw)
+
+    const c = sampleWaterSurface(p.x, p.z, t, null)
+    const f = sampleWaterSurface(p.x + fwdX * RING, p.z + fwdZ * RING, t, null)
+    const b = sampleWaterSurface(p.x - fwdX * RING, p.z - fwdZ * RING, t, null)
+    const rgt = sampleWaterSurface(p.x + rightX * RING, p.z + rightZ * RING, t, null)
+    const lft = sampleWaterSurface(p.x - rightX * RING, p.z - rightZ * RING, t, null)
+
+    const yTarget = waterY + (c.y + f.y + b.y + rgt.y + lft.y) / 5
+    p.y += (yTarget - p.y) * dampY
+
+    const pitchTarget = Math.atan2(b.y - f.y, RING * 2) * 0.95
+    const rollTarget = Math.atan2(rgt.y - lft.y, RING * 2) * 0.95
+    p.pitch += (pitchTarget - p.pitch) * dampTilt
+    p.roll += (rollTarget - p.roll) * dampTilt
+
+    g.position.set(p.x, p.y, p.z)
+    g.rotation.set(p.pitch, p.yaw, p.roll)
+
+    const foam = foamRef.current
+    if (foam) {
+      foam.material.opacity = 0.14 + 0.03 * Math.sin(t * 0.45)
+    }
   })
 
   return (
     <group ref={ref} position={position} rotation={[0, rotationY, 0]} renderOrder={8}>
-      <GltfProp url="/models/float.glb" height={height} sink={0.02} vinyl layer={FLOAT_LAYER} merge castShadow={false} />
+      <GltfProp url="/models/float.glb" height={height} sink={0.072} vinyl layer={FLOAT_LAYER} merge castShadow />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]} renderOrder={7}>
+        <circleGeometry args={[0.22, 24]} />
+        <meshBasicMaterial color="#082028" transparent opacity={0.2} depthWrite={false} />
+      </mesh>
+      <mesh ref={foamRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 0]} renderOrder={9}>
+        <ringGeometry args={[0.15, 0.3, 40]} />
+        <meshBasicMaterial
+          color="#e4f6ff"
+          transparent
+          opacity={0.18}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+          toneMapped={false}
+        />
+      </mesh>
     </group>
   )
 }
@@ -120,7 +204,7 @@ const WHITE_LOTUS = [
   { p: [11.8, 0, -6.2], h: 0.55, y: 0.25 },
 ]
 
-function Surroundings({ poolLength, poolWidth, scene = 'outdoor', waterY = -0.17, showFloat = true, rolladen = false }) {
+function Surroundings({ poolLength, poolWidth, scene = 'outdoor', waterY = -0.17, showFloat = true, rolladen = false, jet = null }) {
   const sceneryRef = useRef()
   const hl = poolLength / 2
   const hw = poolWidth / 2
@@ -235,6 +319,9 @@ function Surroundings({ poolLength, poolWidth, scene = 'outdoor', waterY = -0.17
           position={[poolLength * (rolladen ? -0.22 : 0.18), waterY, poolWidth * 0.16]}
           rotationY={-0.6}
           height={0.62}
+          jet={jet}
+          poolLength={poolLength}
+          poolWidth={poolWidth}
         />
       )}
     </group>

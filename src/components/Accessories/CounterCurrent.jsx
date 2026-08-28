@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
 const CHROME = {
@@ -52,12 +53,13 @@ function makeHandle() {
 
 /**
  * iGarden-InverJet-ähnliche Gegenstromdüse: Chrom-Blende, Düse, Haltegriff, LED.
- * Strömung sitzt im Wasser-Shader; hier nur unterwasser-Volumen + Hardware.
+ * Strömung sitzt nur im Wasser-Shader, ohne additive Volumen-Meshes.
  * Lokal +X ins Becken, Y oben.
  */
 function CounterCurrent({ position, rotation, waterY = -0.17 }) {
   const y = waterY - 0.28
   const pos = position ? [position[0], y, position[2]] : [0, y, 0]
+  const ledRef = useRef()
 
   const geos = useMemo(
     () => ({
@@ -74,6 +76,13 @@ function CounterCurrent({ position, rotation, waterY = -0.17 }) {
     },
     [geos],
   )
+
+  useFrame(({ clock }) => {
+    const led = ledRef.current
+    if (!led) return
+    const pulse = 0.62 + 0.38 * (0.5 + 0.5 * Math.sin(clock.elapsedTime * 5.4))
+    led.color.setRGB(0.42 * pulse, 0.92 * pulse, 1.0 * pulse)
+  })
 
   return (
     <group position={pos} rotation={rotation || [0, 0, 0]}>
@@ -149,7 +158,7 @@ function CounterCurrent({ position, rotation, waterY = -0.17 }) {
 
       <mesh rotation={[0, Math.PI / 2, 0]} position={[0.026, 0, 0]}>
         <torusGeometry args={[0.132, 0.0045, 8, 48]} />
-        <meshBasicMaterial color="#9af4ff" toneMapped={false} />
+        <meshBasicMaterial ref={ledRef} color="#9af4ff" toneMapped={false} />
       </mesh>
       </group>
     </group>

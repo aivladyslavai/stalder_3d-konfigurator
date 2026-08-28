@@ -9,7 +9,7 @@ import { roundedRectShape, cornerRadiusFor } from '../three/footprint'
  * vollständig prozedural per GLSL-Shader (gleichmässige Verteilung, weiches
  * Schimmern). Wird additiv über den Boden gelegt.
  *
- * Props: { length, width, depth, shape, led }
+ * Props: { length, width, depth, shape, led, jet }
  */
 const vertexShader = /* glsl */ `
   varying vec2 vUv;
@@ -28,6 +28,10 @@ const fragmentShader = /* glsl */ `
   uniform vec3 uColor;
   uniform float uScale;
   uniform float uOpacity;
+  uniform vec2 uInner;
+  uniform float uJetOn;
+  uniform vec2 uJetOrigin;
+  uniform vec2 uJetDir;
 
   #define TAU 6.28318530718
   #define ITER 5
@@ -47,27 +51,49 @@ const fragmentShader = /* glsl */ `
     return pow(abs(c), 6.5);
   }
 
+  float jetEnvelope(vec2 xz) {
+    if (uJetOn < 0.001) return 0.0;
+    vec2 dir = normalize(uJetDir);
+    vec2 lat = vec2(-dir.y, dir.x);
+    vec2 toP = xz - uJetOrigin;
+    float along = dot(toP, dir);
+    float across = dot(toP, lat);
+    float width = mix(0.06, 0.42, pow(clamp(along / 3.1, 0.0, 1.0), 0.7));
+    float radial = exp(-(across * across) / max(2.0 * width * width, 1e-4));
+    float stream = smoothstep(-0.03, 0.12, along) * exp(-max(along, 0.0) * 0.2);
+    float travel = 0.5 + 0.5 * sin(along * 9.0 - uTime * 6.4 + across * 4.0);
+    return radial * stream * travel;
+  }
+
   void main() {
-    float t = uTime * 0.38 + 23.0;
+    float t = uTime * 0.42 + 23.0;
+    vec2 xz = (vUv - 0.5) * uInner;
+    float jet = jetEnvelope(xz);
     vec2 warp = 0.035 * vec2(
       sin(vUv.y * 9.0 + uTime * 0.21),
       cos(vUv.x * 8.0 - uTime * 0.17)
     );
+    warp += uJetDir * jet * 0.045;
     float a = caustic(vUv * uScale + warp, t);
     float b = caustic(vUv * uScale * 1.85 + 3.7 + warp.yx, t * 0.73);
     float c = caustic(vUv * uScale * 3.4 + vec2(5.1, -2.4), t * 1.11);
     float v = clamp(a * 0.55 + b * 0.38 + c * 0.22, 0.0, 1.0);
-    v = pow(v, 1.15);
+    v = pow(v, 1.12);
+    v *= 1.0 + jet * 1.25;
+    v += jet * 0.14;
     vec2 e = smoothstep(0.0, 0.14, vUv) * smoothstep(0.0, 0.14, 1.0 - vUv);
     v *= e.x * e.y;
     gl_FragColor = vec4(uColor * v, v * uOpacity);
   }
 `
 
-function Caustics({ length, width, depth, shape, led }) {
-  const matRef = useRef()
+function Caustics({ length, width, depth, shape, led, jet = null }) {
+  const jetRef = useRef(jet)
+  jetRef.current = jet
   const t = WALL_THICKNESS
   const r = cornerRadiusFor(shape)
+  const innerL = Math.max(0.4, length - t * 2)
+  const innerW = Math.max(0.4, width - t * 2)
 
   const geometry = useMemo(() => {
     const shp = roundedRectShape(length - t * 2, width - t * 2, Math.max(0, r - t))
@@ -93,36 +119,53 @@ function Caustics({ length, width, depth, shape, led }) {
       uColor: { value: new THREE.Color(led ? '#cdf2ff' : '#bfe9ff') },
       uScale: { value: Math.max(1.5, Math.min(length, width) * 0.9) },
       uOpacity: { value: 0.62 },
+      uInner: { value: new THREE.Vector2(innerL, innerW) },
+      uJetOn: { value: 0 },
+      uJetOrigin: { value: new THREE.Vector2() },
+      uJetDir: { value: new THREE.Vector2(1, 0) },
     }),
-    [], // Werte werden unten aktualisiert
+    [],
+  )
+
+  const material = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        name: 'PoolCaustics',
+        uniforms,
+        vertexShader,
+        fragmentShader,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        customProgramCacheKey: () => 'pool-caustics-jet-v2',
+      }),
+    [uniforms],
   )
 
   useEffect(() => {
     uniforms.uColor.value.set(led ? '#cdf2ff' : '#bfe9ff')
     uniforms.uScale.value = Math.max(1.5, Math.min(length, width) * 0.9)
-  }, [led, length, width, uniforms])
+    uniforms.uInner.value.set(innerL, innerW)
+  }, [led, length, width, innerL, innerW, uniforms])
 
-  useEffect(() => () => geometry.dispose(), [geometry])
+  useEffect(() => () => {
+    geometry.dispose()
+    material.dispose()
+  }, [geometry, material])
 
   useFrame(({ clock }) => {
-    if (matRef.current) matRef.current.uniforms.uTime.value = clock.elapsedTime
+    uniforms.uTime.value = clock.elapsedTime
+    const flow = jetRef.current
+    uniforms.uJetOn.value = flow ? 1 : 0
+    if (flow) {
+      uniforms.uJetOrigin.value.set(flow.origin[0], flow.origin[1])
+      uniforms.uJetDir.value.set(flow.dir[0], flow.dir[1])
+    }
   })
 
   const y = -depth + t + 0.015
 
-  return (
-    <mesh geometry={geometry} position={[0, y, 0]} renderOrder={1}>
-      <shaderMaterial
-        ref={matRef}
-        vertexShader={vertexShader}
-        fragmentShader={fragmentShader}
-        uniforms={uniforms}
-        transparent
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-      />
-    </mesh>
-  )
+  return <mesh geometry={geometry} material={material} position={[0, y, 0]} renderOrder={1} />
 }
 
 export default React.memo(Caustics)
