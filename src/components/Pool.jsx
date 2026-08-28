@@ -168,7 +168,7 @@ function Pool({ length, width, depth, material, shape }) {
   return (
     <group>
       {/* Wände */}
-      <mesh geometry={geo.walls} receiveShadow castShadow>
+      <mesh geometry={geo.walls} receiveShadow>
         {steelLook ? (
           <meshPhysicalMaterial {...inner} map={wallMap} color="#ffffff" side={THREE.DoubleSide} />
         ) : (

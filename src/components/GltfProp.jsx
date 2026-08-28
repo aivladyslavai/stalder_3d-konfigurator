@@ -132,8 +132,9 @@ export function GltfCopies({
   castShadow = true,
   receiveShadow = true,
   sink = 0,
+  layer,
 }) {
-  const proto = usePrepared(url, { height: 1, merge, foliage, castShadow, receiveShadow, sink })
+  const proto = usePrepared(url, { height: 1, merge, foliage, castShadow, receiveShadow, sink, layer })
   return (
     <>
       {items.map((t, i) => (

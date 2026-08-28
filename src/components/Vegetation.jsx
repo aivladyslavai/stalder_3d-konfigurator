@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { makeHedgeFoliageTexture } from '../three/textures'
 import { GltfCopies } from './GltfProp'
 import House from './House'
+import { SCENERY_LAYER } from '../three/layers'
 
 /**
  * Grundstück: Palmen, Haus dahinter, niedrige Hecke als sichtbare Grenze.
@@ -89,9 +90,9 @@ function Vegetation({ timeOfDay = 'day' }) {
   return (
     <group>
       <House />
-      <GltfCopies url="/models/palm.glb" merge items={PNG_PALMS} />
-      <GltfCopies url="/models/coconut-palm.glb" merge items={COCONUTS} />
-      <GltfCopies url="/models/date-palm.glb" merge items={DATES} />
+      <GltfCopies url="/models/palm.glb" merge items={PNG_PALMS} layer={SCENERY_LAYER} />
+      <GltfCopies url="/models/coconut-palm.glb" merge items={COCONUTS} layer={SCENERY_LAYER} />
+      <GltfCopies url="/models/date-palm.glb" merge items={DATES} layer={SCENERY_LAYER} />
 
       <mesh geometry={hedge} receiveShadow>
         <meshStandardMaterial

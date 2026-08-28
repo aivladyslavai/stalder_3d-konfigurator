@@ -134,10 +134,12 @@ export function prepareGltf(scene, opts = {}) {
   fitObject(wrapper, opts)
   if (opts.clearX && opts.clearZ) hideInRect(wrapper, opts.clearX, opts.clearZ)
   wrapper.traverse((o) => {
+    if (opts.layer != null) o.layers.set(opts.layer)
     if (!o.isMesh) return
     o.castShadow = opts.castShadow !== false
     o.receiveShadow = opts.receiveShadow !== false
     o.frustumCulled = true
   })
+  if (opts.layer != null) wrapper.layers.set(opts.layer)
   return wrapper
 }

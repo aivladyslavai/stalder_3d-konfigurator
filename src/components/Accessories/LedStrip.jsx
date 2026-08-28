@@ -28,24 +28,24 @@ function RgbwLamp({ lensRef, lightRef }) {
   return (
     <group>
       {/* Dose entlang lokaler +Z (ins Becken) */}
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, -0.055]} castShadow>
-        <cylinderGeometry args={[0.155, 0.175, 0.11, 48]} />
-        <meshPhysicalMaterial color="#b7c2c8" metalness={0.88} roughness={0.24} />
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, -0.055]}>
+        <cylinderGeometry args={[0.155, 0.175, 0.11, 24]} />
+        <meshStandardMaterial color="#b7c2c8" metalness={0.88} roughness={0.24} />
       </mesh>
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.012]} castShadow>
-        <cylinderGeometry args={[0.175, 0.175, 0.022, 48]} />
-        <meshPhysicalMaterial {...CHROME} />
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.012]}>
+        <cylinderGeometry args={[0.175, 0.175, 0.022, 24]} />
+        <meshStandardMaterial {...CHROME} />
       </mesh>
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.026]}>
-        <cylinderGeometry args={[0.14, 0.14, 0.012, 48]} />
-        <meshPhysicalMaterial {...CHROME} />
+        <cylinderGeometry args={[0.14, 0.14, 0.012, 24]} />
+        <meshStandardMaterial {...CHROME} />
       </mesh>
       <mesh position={[0, 0, 0.034]}>
-        <torusGeometry args={[0.118, 0.012, 12, 48]} />
+        <torusGeometry args={[0.118, 0.012, 8, 24]} />
         <meshStandardMaterial color="#121416" roughness={0.65} metalness={0.2} />
       </mesh>
       <mesh position={[0, 0, 0.042]}>
-        <circleGeometry args={[0.108, 48]} />
+        <circleGeometry args={[0.108, 24]} />
         <meshStandardMaterial
           ref={lensRef}
           color="#c5f2ff"
@@ -53,22 +53,13 @@ function RgbwLamp({ lensRef, lightRef }) {
           emissiveIntensity={2.2}
           roughness={0.18}
           metalness={0}
-          side={THREE.DoubleSide}
         />
       </mesh>
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.05]}>
-        <sphereGeometry args={[0.09, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshPhysicalMaterial
-          color="#dff8ff"
-          roughness={0.08}
-          metalness={0}
-          transparent
-          opacity={0.35}
-          transmission={0.2}
-          thickness={0.03}
-        />
+        <sphereGeometry args={[0.09, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial color="#dff8ff" roughness={0.12} metalness={0} transparent opacity={0.35} depthWrite={false} />
       </mesh>
-      <pointLight ref={lightRef} position={[0, 0, 0.32]} color="#7adfff" intensity={2.8} distance={5.5} decay={2} />
+      <pointLight ref={lightRef} position={[0, 0, 0.32]} color="#7adfff" intensity={2.8} distance={5.5} decay={2} castShadow={false} />
     </group>
   )
 }

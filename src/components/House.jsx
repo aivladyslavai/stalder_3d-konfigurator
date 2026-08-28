@@ -2,6 +2,7 @@ import React, { useLayoutEffect, useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { prepareGltf } from '../three/prepareGltf'
+import { SCENERY_LAYER, applyLayer } from '../three/layers'
 
 function visibleBox(root) {
   const box = new THREE.Box3()
@@ -41,6 +42,7 @@ function House() {
   )
 
   useLayoutEffect(() => {
+    applyLayer(object, SCENERY_LAYER)
     const box = visibleBox(object)
     const targetY = 0.02
     object.position.y += targetY - box.min.y - 0.55

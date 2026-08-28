@@ -134,7 +134,7 @@ function Scenery({ children }) {
   const ref = useRef()
   useLayoutEffect(() => {
     applyLayer(ref.current, SCENERY_LAYER)
-  })
+  }, [])
   return <group ref={ref}>{children}</group>
 }
 
@@ -151,7 +151,7 @@ const GHOST_MATERIAL = new THREE.MeshStandardMaterial({
   depthTest: false,
 })
 
-function GhostModel({ placing, length, width, depth, anchor, stairItem }) {
+function GhostModel({ placing, length, width, depth, anchor, stairItem, waterY }) {
   const ref = useRef()
 
   useLayoutEffect(() => {
@@ -177,6 +177,8 @@ function GhostModel({ placing, length, width, depth, anchor, stairItem }) {
           poolLength={length}
           poolWidth={width}
           poolDepth={depth}
+          material={null}
+          waterY={waterY}
         />
       )
       break
@@ -212,7 +214,7 @@ function GhostModel({ placing, length, width, depth, anchor, stairItem }) {
  * Platzierungs-Modus: unsichtbare Klickfläche + graue Produkt-Vorschau,
  * die dem Cursor folgt. Die Vorschau wird imperativ bewegt (kein Re-Render).
  */
-function PlacementLayer({ length, width, depth, placing, stairItem }) {
+function PlacementLayer({ length, width, depth, placing, stairItem, waterY }) {
   const confirmPlacement = usePoolConfig((s) => s.confirmPlacement)
   const followRef = useRef()
   const markerRef = useRef()
@@ -287,10 +289,10 @@ function PlacementLayer({ length, width, depth, placing, stairItem }) {
       )}
 
       {isStair ? (
-        <GhostModel placing={placing} length={length} width={width} depth={depth} anchor={anchor} stairItem={stairItem} />
+        <GhostModel placing={placing} length={length} width={width} depth={depth} anchor={anchor} stairItem={stairItem} waterY={waterY} />
       ) : (
         <group ref={followRef}>
-          <GhostModel placing={placing} length={length} width={width} depth={depth} anchor={anchor} stairItem={stairItem} />
+          <GhostModel placing={placing} length={length} width={width} depth={depth} anchor={anchor} stairItem={stairItem} waterY={waterY} />
         </group>
       )}
     </>
@@ -431,17 +433,23 @@ export default function Scene() {
           led={led}
           envMode={scene === 'indoor' ? 'indoor' : timeOfDay}
           pickable={!placing}
-          resolution={placing ? 256 : 512}
-          samples={placing ? 3 : 5}
         />
         {stairItem.visual && !placingStair && (
-          <Stairs type={stairItem.visual} steps={stairItem.steps} wall={stairWall} corner={stairCorner} {...acc} />
+          <Stairs
+            type={stairItem.visual}
+            steps={stairItem.steps}
+            wall={stairWall}
+            corner={stairCorner}
+            material={material}
+            waterY={waterLevelFor(shape)}
+            {...acc}
+          />
         )}
         {led && <LedStrip {...acc} />}
         {rolladen && <Cover {...acc} waterY={waterLevelFor(shape)} />}
         <PlacedItems placements={placements} depth={depth} />
         {placing && (
-          <PlacementLayer length={length} width={width} depth={depth} placing={placing} stairItem={stairItem} />
+          <PlacementLayer length={length} width={width} depth={depth} placing={placing} stairItem={stairItem} waterY={waterLevelFor(shape)} />
         )}
       </Suspense>
 

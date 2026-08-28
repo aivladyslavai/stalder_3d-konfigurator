@@ -45,8 +45,8 @@ function makeWaterGeometry(length, width, radius, wall) {
   const hx = lw / 2
   const hz = ww / 2
   const r = Math.max(0, Math.min(radius - wall, hx - 0.02, hz - 0.02))
-  const segX = Math.max(36, Math.min(96, Math.ceil(lw * 14)))
-  const segZ = Math.max(24, Math.min(64, Math.ceil(ww * 14)))
+  const segX = Math.max(32, Math.min(80, Math.ceil(lw * 12)))
+  const segZ = Math.max(20, Math.min(48, Math.ceil(ww * 12)))
   const g = new THREE.PlaneGeometry(lw, ww, segX, segZ)
   g.rotateX(-Math.PI / 2)
   if (r > 0.001) {
@@ -65,7 +65,7 @@ function patchWaveMaterial(mat) {
   if (!mat || mat.userData.wavesPatched) return
   const orig = mat.onBeforeCompile
   mat.onBeforeCompile = (shader, renderer) => {
-    orig.call(mat, shader, renderer)
+    if (typeof orig === 'function') orig.call(mat, shader, renderer)
     injectWaterWaves(shader)
     mat.userData.shader = shader
   }
@@ -82,7 +82,7 @@ function Water({
   envMode = 'day',
   pickable = true,
   resolution = 512,
-  samples = 5,
+  samples = 2,
 }) {
   const meshRef = useRef()
   const matRef = useRef()
@@ -120,7 +120,7 @@ function Water({
 
   useLayoutEffect(() => {
     patchWaveMaterial(matRef.current)
-  }, [])
+  })
 
   useFrame((state) => {
     const mesh = meshRef.current
@@ -130,23 +130,32 @@ function Water({
     state.camera.layers.disable(FLOAT_LAYER)
     state.camera.layers.disable(SCENERY_LAYER)
 
-    const prevTone = state.gl.toneMapping
-    state.gl.toneMapping = THREE.NoToneMapping
+    const gl = state.gl
+    const prevTone = gl.toneMapping
+    const prevShadows = gl.shadowMap.enabled
+    const prevAuto = gl.shadowMap.autoUpdate
     mesh.visible = false
-    state.gl.setRenderTarget(fbo)
-    state.gl.render(state.scene, state.camera)
-    state.gl.setRenderTarget(null)
-    mesh.visible = true
-    state.gl.toneMapping = prevTone
-
-    setFloatsVisible(true)
-    state.camera.layers.enable(FLOAT_LAYER)
-    state.camera.layers.enable(SCENERY_LAYER)
+    gl.toneMapping = THREE.NoToneMapping
+    gl.shadowMap.enabled = false
+    gl.shadowMap.autoUpdate = false
+    try {
+      gl.setRenderTarget(fbo)
+      gl.render(state.scene, state.camera)
+    } finally {
+      gl.setRenderTarget(null)
+      mesh.visible = true
+      gl.shadowMap.enabled = prevShadows
+      gl.shadowMap.autoUpdate = prevAuto
+      gl.toneMapping = prevTone
+      setFloatsVisible(true)
+      state.camera.layers.enable(FLOAT_LAYER)
+      state.camera.layers.enable(SCENERY_LAYER)
+    }
 
     const mat = matRef.current
     if (mat) {
-      mat.buffer = fbo.texture
       patchWaveMaterial(mat)
+      mat.buffer = fbo.texture
       const shader = mat.userData?.shader
       if (shader?.uniforms?.uTime) {
         shader.uniforms.uTime.value = state.clock.elapsedTime
@@ -183,7 +192,7 @@ function Water({
         roughness={0.045}
         metalness={0}
         chromaticAberration={0}
-        anisotropicBlur={0.018}
+        anisotropicBlur={0.01}
         distortion={0}
         distortionScale={0}
         temporalDistortion={0}

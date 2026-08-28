@@ -128,7 +128,7 @@ function Surroundings({ poolLength, poolWidth, scene = 'outdoor', waterY = -0.17
 
   useLayoutEffect(() => {
     applyLayer(sceneryRef.current, SCENERY_LAYER)
-  })
+  }, [indoor])
 
   return (
     <group>
@@ -142,6 +142,7 @@ function Surroundings({ poolLength, poolWidth, scene = 'outdoor', waterY = -0.17
           <GltfCopies
             url="/models/beach-chair-2.glb"
             merge
+            layer={SCENERY_LAYER}
             items={[
               { p: [-hl - 2.15, 0, -1.55], h: 2.08, y: Math.PI / 2 },
               { p: [-hl - 2.15, 0, 1.55], h: 2.08, y: Math.PI / 2 },
@@ -158,6 +159,7 @@ function Surroundings({ poolLength, poolWidth, scene = 'outdoor', waterY = -0.17
               position={[-hl - 0.82, 0, -1.38]}
               rotation={[0, 1.35, 0]}
               merge
+              layer={SCENERY_LAYER}
             />
             <GltfProp
               url="/models/plants.glb"
@@ -169,12 +171,13 @@ function Surroundings({ poolLength, poolWidth, scene = 'outdoor', waterY = -0.17
               merge
               castShadow={false}
               receiveShadow={false}
+              layer={SCENERY_LAYER}
             />
-            <GltfProp url="/models/tropical.glb" foliage xz={1.7} position={[-10.6, 0, -5.8]} rotation={[0, -0.4, 0]} merge castShadow={false} receiveShadow={false} />
-            <GltfProp url="/models/tropical.glb" foliage xz={1.45} position={[-13.1, 0, -2.4]} rotation={[0, 0.85, 0]} merge castShadow={false} receiveShadow={false} />
-            <GltfProp url="/models/tropical.glb" foliage xz={1.6} position={[-11.2, 0, 2.35]} rotation={[0, -1.1, 0]} merge castShadow={false} receiveShadow={false} />
-            <GltfProp url="/models/tropical.glb" foliage xz={1.35} position={[-9.7, 0, 3.7]} rotation={[0, 0.3, 0]} merge castShadow={false} receiveShadow={false} />
-            <GltfProp url="/models/tropical.glb" foliage xz={1.5} position={[12.2, 0, -5.4]} rotation={[0, 0.5, 0]} merge castShadow={false} receiveShadow={false} />
+            <GltfProp url="/models/tropical.glb" foliage xz={1.7} position={[-10.6, 0, -5.8]} rotation={[0, -0.4, 0]} merge castShadow={false} receiveShadow={false} layer={SCENERY_LAYER} />
+            <GltfProp url="/models/tropical.glb" foliage xz={1.45} position={[-13.1, 0, -2.4]} rotation={[0, 0.85, 0]} merge castShadow={false} receiveShadow={false} layer={SCENERY_LAYER} />
+            <GltfProp url="/models/tropical.glb" foliage xz={1.6} position={[-11.2, 0, 2.35]} rotation={[0, -1.1, 0]} merge castShadow={false} receiveShadow={false} layer={SCENERY_LAYER} />
+            <GltfProp url="/models/tropical.glb" foliage xz={1.35} position={[-9.7, 0, 3.7]} rotation={[0, 0.3, 0]} merge castShadow={false} receiveShadow={false} layer={SCENERY_LAYER} />
+            <GltfProp url="/models/tropical.glb" foliage xz={1.5} position={[12.2, 0, -5.4]} rotation={[0, 0.5, 0]} merge castShadow={false} receiveShadow={false} layer={SCENERY_LAYER} />
             <GltfCopies
               url="/models/lotus-pink.glb"
               foliage
@@ -182,6 +185,7 @@ function Surroundings({ poolLength, poolWidth, scene = 'outdoor', waterY = -0.17
               sink={0.07}
               castShadow={false}
               receiveShadow={false}
+              layer={SCENERY_LAYER}
               items={PINK_LOTUS}
             />
             <GltfCopies
@@ -191,6 +195,7 @@ function Surroundings({ poolLength, poolWidth, scene = 'outdoor', waterY = -0.17
               sink={0.06}
               castShadow={false}
               receiveShadow={false}
+              layer={SCENERY_LAYER}
               items={WHITE_LOTUS}
             />
           </>
@@ -203,12 +208,13 @@ function Surroundings({ poolLength, poolWidth, scene = 'outdoor', waterY = -0.17
           rotation={[0, 0.7, 0]}
           merge
           castShadow={false}
+          layer={SCENERY_LAYER}
         />
         <group position={[-hl - 1.9, 0.4, 0]}>
-          <GltfProp url="/models/cocktail.glb" height={0.21} rotation={[0, 0.35, 0]} merge castShadow={false} />
+          <GltfProp url="/models/cocktail.glb" height={0.21} rotation={[0, 0.35, 0]} merge castShadow={false} layer={SCENERY_LAYER} />
         </group>
 
-        <GltfProp url="/models/pothos.glb" height={0.95} position={[hl + 1.45, 0, -hw - 1.25]} rotation={[0, 0.4, 0]} merge />
+        <GltfProp url="/models/pothos.glb" height={0.95} position={[hl + 1.45, 0, -hw - 1.25]} rotation={[0, 0.4, 0]} merge layer={SCENERY_LAYER} />
         <GltfProp
           url="/models/pothos.glb"
           height={indoor ? 1.05 : 0.88}
@@ -216,10 +222,11 @@ function Surroundings({ poolLength, poolWidth, scene = 'outdoor', waterY = -0.17
           rotation={[0, -0.7, 0]}
           scale={indoor ? 1 : 0.95}
           merge
+          layer={SCENERY_LAYER}
         />
-        <GltfProp url="/models/rhizome.glb" height={indoor ? 1.15 : 1.25} position={[hl + 1.35, 0, hw + 1.35]} rotation={[0, 0.9, 0]} merge />
+        <GltfProp url="/models/rhizome.glb" height={indoor ? 1.15 : 1.25} position={[hl + 1.35, 0, hw + 1.35]} rotation={[0, 0.9, 0]} merge layer={SCENERY_LAYER} />
         {indoor && (
-          <GltfProp url="/models/rhizome.glb" height={1.1} position={[-hl - 1.55, 0, -hw - 1.45]} rotation={[0, 2.1, 0]} merge />
+          <GltfProp url="/models/rhizome.glb" height={1.1} position={[-hl - 1.55, 0, -hw - 1.45]} rotation={[0, 2.1, 0]} merge layer={SCENERY_LAYER} />
         )}
       </group>
 

@@ -67,8 +67,6 @@ vec3 waterDisplace(vec2 xz, out vec3 normal) {
   gerstner(xz, vec2(-0.28, 1.00), 0.0041, 0.92, 0.17, 2.90, disp, nrm);
   gerstner(xz, vec2(0.94, -0.38), 0.0029, 0.56, 0.20, 0.15, disp, nrm);
   gerstner(xz, vec2(-0.62, 0.78), 0.0019, 0.36, 0.22, 4.20, disp, nrm);
-  gerstner(xz, vec2(0.22, -1.00), 0.0013, 0.23, 0.24, 5.10, disp, nrm);
-  gerstner(xz, vec2(-0.88, -0.32), 0.0008, 0.15, 0.26, 1.05, disp, nrm);
   gerstner(xz, vec2(0.48, 0.88), 0.0046, 1.98, 0.14, 3.60, disp, nrm);
 
   float inside = max(0.0, -sdRoundBox(xz, uHalf, uCornerR));

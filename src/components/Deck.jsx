@@ -82,7 +82,7 @@ function Deck({ length, width, shape: poolShape, deck, margin = 3.6 }) {
   }, [geometry, colorMap, normalMap])
 
   return (
-    <mesh geometry={geometry} position={[0, 0, 0]} receiveShadow castShadow>
+    <mesh geometry={geometry} position={[0, 0, 0]} receiveShadow>
       <meshStandardMaterial
         map={colorMap}
         color={mat.color}
