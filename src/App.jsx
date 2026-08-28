@@ -5,6 +5,7 @@ import Header from './ui/Header'
 import ConfigSidebar from './ui/ConfigSidebar'
 import SummarySidebar from './ui/SummarySidebar'
 import LeadForm from './ui/steps/LeadForm'
+import StairPlacementModal from './ui/StairPlacementModal'
 import { usePoolConfig } from './hooks/usePoolConfig'
 
 export default function App() {
@@ -37,7 +38,9 @@ export default function App() {
             </button>
           </div>
 
-          {placing && (
+          {(placing?.kind === 'stair' || placing?.kind === 'countercurrent') && <StairPlacementModal />}
+
+          {placing && placing.kind !== 'stair' && placing.kind !== 'countercurrent' && (
             <div className="absolute inset-x-0 top-16 z-20 flex justify-center px-4">
               <div className="flex items-center gap-3 rounded-full bg-[#002B6F] px-4 py-2 text-sm text-white shadow-lg">
                 <span>

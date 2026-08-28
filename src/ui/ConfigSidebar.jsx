@@ -251,7 +251,7 @@ export default function ConfigSidebar() {
                 active={s.stair === st.id}
                 onClick={() => s.setStair(st.id)}
                 title={st.label}
-                hint={st.id !== 'Keine' ? 'Anschliessend im 3D platzieren' : null}
+                hint={st.id !== 'Keine' ? 'Position im Plan wählen' : null}
               />
             ))}
           </div>
@@ -289,8 +289,9 @@ export default function ConfigSidebar() {
           <div className="space-y-2">
             <RowBtn
               active={placingId === 'countercurrent' || has('countercurrent')}
-              onClick={() => addOrRemove('countercurrent')}
+              onClick={() => s.startPlacing('countercurrent')}
               title="Gegenstromanlage"
+              hint="Position im Plan wählen"
             />
             <RowBtn
               active={placingId === 'robotX60' || placingId === 'robotX80' || has('robotX60') || has('robotX80')}

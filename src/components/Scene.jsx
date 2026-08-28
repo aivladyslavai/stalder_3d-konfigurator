@@ -198,7 +198,7 @@ function GhostModel({ placing, length, width, depth, anchor, stairItem, waterY }
       body = <Robot position={[0, 0, 0]} variant={placing.variant} poolDepth={depth} />
       break
     case 'countercurrent':
-      body = <CounterCurrent position={[0, -depth / 2, 0]} rotation={[0, 0, 0]} poolDepth={depth} />
+      body = <CounterCurrent position={[0, 0, 0]} rotation={[0, 0, 0]} waterY={waterY} />
       break
     case 'heatpump':
       body = <HeatPump position={[0, 0, 0]} rotation={[0, 0, 0]} />
@@ -299,8 +299,9 @@ function PlacementLayer({ length, width, depth, placing, stairItem, waterY }) {
   )
 }
 
-const PlacedItems = React.memo(function PlacedItems({ placements, depth }) {
+const PlacedItems = React.memo(function PlacedItems({ placements, depth, waterY, hideKind }) {
   return placements.map((p) => {
+    if (hideKind && p.kind === hideKind) return null
     const rot = [0, p.rotY || 0, 0]
     if (p.kind === 'jet') return <Jet key={p.id} position={[p.x, -depth / 2, p.z]} rotation={rot} />
     if (p.kind === 'schwall') return <SchwallDusche key={p.id} position={[p.x, 0, p.z]} rotation={rot} />
@@ -308,7 +309,7 @@ const PlacedItems = React.memo(function PlacedItems({ placements, depth }) {
     if (p.kind === 'bank') return <Bank key={p.id} position={[p.x, 0, p.z]} rotation={rot} poolDepth={depth} />
     if (p.kind === 'robot') return <Robot key={p.id} position={[p.x, 0, p.z]} variant={p.variant} poolDepth={depth} />
     if (p.kind === 'countercurrent')
-      return <CounterCurrent key={p.id} position={[p.x, -depth / 2, p.z]} rotation={rot} poolDepth={depth} />
+      return <CounterCurrent key={p.id} position={[p.x, 0, p.z]} rotation={rot} waterY={waterY} />
     if (p.kind === 'heatpump') return <HeatPump key={p.id} position={[p.x, 0, p.z]} rotation={rot} />
     return null
   })
@@ -347,7 +348,6 @@ export default function Scene() {
   const L = useMemo(() => lighting(scene, timeOfDay), [scene, timeOfDay])
   const outdoor = scene !== 'indoor'
   const deckMargin = outdoor ? 2.8 : 5.2
-  const placingStair = placing?.kind === 'stair'
   // Nicht über die Hecke hinaus zoomen, sonst blickt man von aussen ins Grundstück
   const maxDist = useMemo(
     () =>
@@ -434,7 +434,7 @@ export default function Scene() {
           envMode={scene === 'indoor' ? 'indoor' : timeOfDay}
           pickable={!placing}
         />
-        {stairItem.visual && !placingStair && (
+        {stairItem.visual && (
           <Stairs
             type={stairItem.visual}
             steps={stairItem.steps}
@@ -447,16 +447,28 @@ export default function Scene() {
         )}
         {led && <LedStrip {...acc} />}
         {rolladen && <Cover {...acc} waterY={waterLevelFor(shape)} />}
-        <PlacedItems placements={placements} depth={depth} />
-        {placing && (
+        <PlacedItems
+          placements={placements}
+          depth={depth}
+          waterY={waterLevelFor(shape)}
+          hideKind={placing?.kind === 'countercurrent' ? 'countercurrent' : null}
+        />
+        {placing && placing.kind !== 'stair' && placing.kind !== 'countercurrent' && (
           <PlacementLayer length={length} width={width} depth={depth} placing={placing} stairItem={stairItem} waterY={waterLevelFor(shape)} />
+        )}
+        {placing?.kind === 'countercurrent' && placing.preview && (
+          <CounterCurrent
+            position={[placing.preview.x, 0, placing.preview.z]}
+            rotation={[0, placing.preview.rotY || 0, 0]}
+            waterY={waterLevelFor(shape)}
+          />
         )}
       </Suspense>
 
       <CameraRig scene={scene} length={length} width={width} topView={topView} />
       <OrbitControls
         makeDefault
-        enabled={!placing}
+        enabled={!placing || placing.kind === 'stair' || placing.kind === 'countercurrent'}
         enablePan={false}
         minDistance={6}
         maxDistance={maxDist}

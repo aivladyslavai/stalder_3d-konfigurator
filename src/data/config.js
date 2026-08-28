@@ -344,6 +344,38 @@ export function findStair(type, stairId) {
   return getStairsForType(type).find((s) => s.id === stairId) || getStairsForType(type)[0]
 }
 
+/** Klickpunkte im Platzierungsdialog: Ecken, alle Wände, oder nur die Stirnseiten. */
+export function stairPlacementSpots(visual) {
+  if (visual === 'Ecktreppe') {
+    return [
+      { id: 'nw', kind: 'corner', corner: 'nw', wall: 'west', label: 'Nordwest' },
+      { id: 'ne', kind: 'corner', corner: 'ne', wall: 'east', label: 'Nordost' },
+      { id: 'se', kind: 'corner', corner: 'se', wall: 'east', label: 'Südost' },
+      { id: 'sw', kind: 'corner', corner: 'sw', wall: 'west', label: 'Südwest' },
+    ]
+  }
+  if (visual === 'Breitstufentreppe') {
+    return [
+      { id: 'west', kind: 'wall', wall: 'west', corner: 'nw', label: 'Westseite' },
+      { id: 'east', kind: 'wall', wall: 'east', corner: 'ne', label: 'Ostseite' },
+    ]
+  }
+  return [
+    { id: 'west', kind: 'wall', wall: 'west', corner: 'nw', label: 'Westseite' },
+    { id: 'north', kind: 'wall', wall: 'north', corner: 'nw', label: 'Nordseite' },
+    { id: 'east', kind: 'wall', wall: 'east', corner: 'ne', label: 'Ostseite' },
+    { id: 'south', kind: 'wall', wall: 'south', corner: 'se', label: 'Südseite' },
+  ]
+}
+
+/** Stirnseiten für Gegenstromanlage und volle Beckenbreite. */
+export function shortWallPlacementSpots() {
+  return [
+    { id: 'west', kind: 'wall', wall: 'west', label: 'Westseite' },
+    { id: 'east', kind: 'wall', wall: 'east', label: 'Ostseite' },
+  ]
+}
+
 export function getFilterInfo(sizeId) {
   return FILTER_BY_SIZE[sizeId] || FILTER_BY_SIZE.M
 }

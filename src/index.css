@@ -122,7 +122,50 @@ textarea:focus-visible {
   outline-offset: 2px;
 }
 
+.stair-place-card {
+  animation: stair-place-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes stair-place-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.stair-place-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: stair-dot-pulse 2.4s ease-out infinite;
+}
+
+.stair-place-dot[aria-pressed='true'],
+.stair-place-dot:hover,
+.stair-place-dot:focus-visible {
+  animation: none;
+}
+
+@keyframes stair-dot-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(50, 180, 230, 0.28);
+  }
+  55% {
+    box-shadow: 0 0 0 9px rgba(50, 180, 230, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .stair-place-card,
+  .stair-place-dot {
+    animation: none;
+  }
+
   *,
   *::before,
   *::after {

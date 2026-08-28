@@ -16,7 +16,7 @@ import {
   getLedInfo,
   getStairsForType,
 } from '../data/config'
-import { clampInPool, snapToDeck } from '../three/placement'
+import { clampInPool, snapToDeck, snapToNamedWall } from '../three/placement'
 
 export { WALL_THICKNESS, visualShapeForSystem } from '../data/config'
 
@@ -178,17 +178,30 @@ export const usePoolConfig = create((set, get) => ({
       get().recompute()
       return
     }
-    const item = getStairsForType(get().type).find((s) => s.id === stair)
-    set({
+    const cur = get()
+    const item = getStairsForType(cur.type).find((s) => s.id === stair)
+    const restore = { wall: cur.stairWall, corner: cur.stairCorner }
+    const patch = {
       stair,
       placing: {
         catalogId: 'stair',
         kind: 'stair',
         place: item?.visual === 'Ecktreppe' ? 'corner' : 'wall',
         label: item?.label || 'Treppe',
+        restore,
       },
-    })
+    }
+    if (item?.visual === 'Breitstufentreppe' && cur.stairWall !== 'west' && cur.stairWall !== 'east') {
+      patch.stairWall = 'west'
+    }
+    set(patch)
     get().recompute()
+  },
+  previewStairAnchor: ({ wall, corner }) => {
+    set({
+      stairWall: wall || get().stairWall,
+      stairCorner: corner || get().stairCorner,
+    })
   },
   setStairAnchor: ({ wall, corner }) => {
     set({
@@ -208,6 +221,14 @@ export const usePoolConfig = create((set, get) => ({
   startPlacing: (catalogId) => {
     const item = findPlaceable(catalogId)
     if (!item) return
+    const cur = get()
+    const existing = cur.placements.find((p) => p.catalogId === item.id)
+    const preview =
+      item.kind === 'countercurrent'
+        ? existing
+          ? { wall: existing.wall || 'west', x: existing.x, z: existing.z, rotY: existing.rotY }
+          : snapToNamedWall('west', cur.length, cur.width)
+        : null
     set({
       placing: {
         catalogId: item.id,
@@ -216,10 +237,32 @@ export const usePoolConfig = create((set, get) => ({
         label: item.label,
         variant: item.variant || null,
         exclusive: item.exclusive,
+        restorePlacement: existing || null,
+        preview,
       },
     })
   },
-  cancelPlacing: () => set({ placing: null }),
+  previewWallPlacement: (wall) => {
+    const { placing, length, width } = get()
+    if (!placing) return
+    set({ placing: { ...placing, preview: snapToNamedWall(wall, length, width) } })
+  },
+  confirmWallPlacement: (wall) => {
+    const snap = snapToNamedWall(wall, get().length, get().width)
+    get().confirmPlacement(snap)
+  },
+  cancelPlacing: () => {
+    const { placing } = get()
+    if (placing?.kind === 'stair' && placing.restore) {
+      set({
+        placing: null,
+        stairWall: placing.restore.wall,
+        stairCorner: placing.restore.corner,
+      })
+      return
+    }
+    set({ placing: null })
+  },
   confirmPlacement: (snap) => {
     const { placing } = get()
     if (!placing) return

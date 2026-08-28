@@ -464,26 +464,34 @@ export function makeWoodTexture(size = 1024, planks = 10) {
   return tex
 }
 
-/**
- * Rasenfläche – feinkörniges Grün ohne grossflächige Flecken, damit die
- * Kachelung auch aus der Vogelperspektive nicht auffällt.
- */
+/** Nahtlos kachelbares Rasen-Albedo: feine Halme, leichte Horste, kein Golf-Neon. */
 export function makeGrassTexture(size = 512) {
   const canvas = document.createElement('canvas')
   canvas.width = canvas.height = size
   const ctx = canvas.getContext('2d')
   const img = ctx.createImageData(size, size)
+  const P = 8
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      const mid = fbm((x / size) * 22, (y / size) * 22, 3)
-      const fine = valueNoise((x / size) * 190, (y / size) * 190)
-      const blade = valueNoise((x / size) * 48, (y / size) * 420)
-      const dry = fbm((x / size) * 9 + 3, (y / size) * 9, 2)
-      const g = 88 + mid * 28 + fine * 18 + blade * 22
+      const u = (x / size) * P
+      const v = (y / size) * P
+      const clump = pFbm(u, v, P, P, 4)
+      const fine = pValueNoise(u * 36, v * 36, P * 36, P * 36)
+      const bladeA = pValueNoise(u * 22, v * 70, P * 22, P * 70)
+      const bladeB = pValueNoise(u * 64, v * 18, P * 64, P * 18)
+      const speckle = pValueNoise(u * 80, v * 80, P * 80, P * 80)
+      const dry = pFbm(u + 3, v + 1, P, P, 3)
+      const mixN = clump * 0.3 + fine * 0.14 + bladeA * 0.28 + bladeB * 0.16 + speckle * 0.12
+      const lush = Math.max(0, Math.min(1, (mixN - 0.47) * 1.45 + 0.5))
+      const straw = Math.max(0, dry - 0.68) * 1.1
+      const gap = Math.max(0, 0.38 - clump) * 0.9
+      const r = 70 + lush * 46 + straw * 28 - gap * 6
+      const g = 110 + lush * 56 + straw * 8 - gap * 12
+      const b = 52 + lush * 20 + straw * 4 - gap * 4
       const idx = (y * size + x) * 4
-      img.data[idx] = Math.min(255, g * 0.58 + dry * 18)
-      img.data[idx + 1] = Math.min(255, g + dry * 6)
-      img.data[idx + 2] = g * 0.42
+      img.data[idx] = Math.max(0, Math.min(255, r))
+      img.data[idx + 1] = Math.max(0, Math.min(255, g))
+      img.data[idx + 2] = Math.max(0, Math.min(255, b))
       img.data[idx + 3] = 255
     }
   }
@@ -492,6 +500,47 @@ export function makeGrassTexture(size = 512) {
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping
   tex.colorSpace = THREE.SRGBColorSpace
   tex.anisotropy = 8
+  tex.generateMipmaps = true
+  tex.minFilter = THREE.LinearMipmapLinearFilter
+  tex.magFilter = THREE.LinearFilter
+  return tex
+}
+
+/** Halm-Normalmap, periodisch wie das Albedo – nicht die Stein-Normal der Terrasse. */
+export function makeGrassNormalTexture(size = 256) {
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = size
+  const ctx = canvas.getContext('2d')
+  const img = ctx.createImageData(size, size)
+  const P = 8
+  const h = (i, j) => {
+    const u = (i / size) * P
+    const v = (j / size) * P
+    const bladeA = pValueNoise(u * 14, v * 52, P * 14, P * 52)
+    const bladeB = pValueNoise(u * 48, v * 11, P * 48, P * 11)
+    const clump = pFbm(u, v, P, P, 3)
+    return bladeA * 0.62 + bladeB * 0.28 + clump * 0.1
+  }
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const hl = h((x - 1 + size) % size, y)
+      const hr = h((x + 1) % size, y)
+      const hd = h(x, (y - 1 + size) % size)
+      const hu = h(x, (y + 1) % size)
+      let nx = (hl - hr) * 1.35
+      let ny = (hd - hu) * 1.35
+      let nz = 1
+      const len = Math.hypot(nx, ny, nz) || 1
+      const idx = (y * size + x) * 4
+      img.data[idx] = (nx / len * 0.5 + 0.5) * 255
+      img.data[idx + 1] = (ny / len * 0.5 + 0.5) * 255
+      img.data[idx + 2] = (nz / len * 0.5 + 0.5) * 255
+      img.data[idx + 3] = 255
+    }
+  }
+  ctx.putImageData(img, 0, 0)
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping
   return tex
 }
 

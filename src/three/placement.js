@@ -61,6 +61,15 @@ export function snapToWall(x, z, length, width) {
   return { ...pos, wall, rotY: WALL_ROT[wall], corner: null }
 }
 
+export function snapToNamedWall(wall, length, width) {
+  const { hx, hz } = innerHalf(length, width, 0.06)
+  const rotY = WALL_ROT[wall] ?? 0
+  if (wall === 'west') return { x: -hx, z: 0, wall, rotY, corner: null }
+  if (wall === 'east') return { x: hx, z: 0, wall, rotY, corner: null }
+  if (wall === 'north') return { x: 0, z: -hz, wall, rotY, corner: null }
+  return { x: 0, z: hz, wall: 'south', rotY, corner: null }
+}
+
 export function snapToCorner(x, z) {
   const corner = nearestCorner(x, z)
   return { x: 0, z: 0, wall: null, rotY: CORNER_ROT[corner], corner }
