@@ -64,7 +64,7 @@ function boxFromVisible(root) {
   return found ? box : new THREE.Box3().setFromObject(root)
 }
 
-export function fitObject(root, { height, xz, scale = 1, sink = 0, yScale = 1 } = {}) {
+export function fitObject(root, { height, xz, scale = 1, sink = 0, yScale = 1, keepOriginY = false } = {}) {
   const box = boxFromVisible(root)
   const size = box.getSize(new THREE.Vector3())
   let s = scale
@@ -76,8 +76,9 @@ export function fitObject(root, { height, xz, scale = 1, sink = 0, yScale = 1 } 
   const fitted = boxFromVisible(root)
   const c = fitted.getCenter(new THREE.Vector3())
   root.position.x -= c.x
-  root.position.y -= fitted.min.y + sink
   root.position.z -= c.z
+  if (keepOriginY) root.position.y -= sink
+  else root.position.y -= fitted.min.y + sink
   return root
 }
 
@@ -107,6 +108,24 @@ export function hideFlatFloors(root, maxY = 0.9) {
   })
 }
 
+/**
+ * Wohnmöbel aus Interior-GLBs entfernen (Sofas, Tische, Tresen).
+ * Wände, Fenster, Decke und hängende Leuchten bleiben.
+ */
+export function hideLowFurniture(root, maxHeight = 2.15) {
+  root.updateMatrixWorld(true)
+  const size = new THREE.Vector3()
+  root.traverse((o) => {
+    if (!o.isMesh || !o.visible) return
+    const b = new THREE.Box3().setFromObject(o)
+    b.getSize(size)
+    if (b.min.y > 1.6) return
+    if (size.y > 2.2 && Math.min(size.x, size.z) < 1.8) return
+    if (size.y > 3 && size.x > 6 && size.z > 5) return
+    if (size.y < maxHeight && Math.max(size.x, size.z) < 8) o.visible = false
+  })
+}
+
 /** Möbel über dem Becken ausblenden; Wände und Raumhülle bleiben. */
 export function hideInRect(root, hx, hz) {
   if (!hx || !hz) return
@@ -131,6 +150,7 @@ export function prepareGltf(scene, opts = {}) {
   else wrapper.add(clone)
   if (opts.hideDomes) hideDomes(wrapper)
   if (opts.hideFloors) hideFlatFloors(wrapper)
+  if (opts.hideFurniture) hideLowFurniture(wrapper)
   fitObject(wrapper, opts)
   if (opts.clearX && opts.clearZ) hideInRect(wrapper, opts.clearX, opts.clearZ)
   wrapper.traverse((o) => {

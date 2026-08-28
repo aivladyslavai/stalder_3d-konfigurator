@@ -10,7 +10,7 @@ import Water from './Water'
 import Caustics from './Caustics'
 import Deck from './Deck'
 import Ground from './Ground'
-import Indoor from './Indoor'
+import Indoor, { indoorOrbit } from './Indoor'
 import Surroundings from './Surroundings'
 import Vegetation, { HEDGE_RADIUS } from './Vegetation'
 import DayClouds from './DayClouds'
@@ -33,13 +33,13 @@ function lighting(scene, time) {
   if (scene === 'indoor') {
     return {
       env: 'apartment',
-      envIntensity: 0.6,
-      bg: '#11151b',
+      envIntensity: 0.82,
+      bg: '#1c1916',
       sky: false,
-      fog: ['#11151b', 22, 48],
-      ambient: 0.3,
-      sun: { pos: [6, 11, 8], intensity: 0.7, color: '#fff2dc' },
-      hemi: 0.25,
+      fog: ['#1c1916', 42, 90],
+      ambient: 0.42,
+      sun: { pos: [5, 10, 6], intensity: 0.88, color: '#ffe8c8' },
+      hemi: 0.32,
     }
   }
   if (time === 'dusk') {
@@ -67,28 +67,40 @@ function lighting(scene, time) {
 }
 
 const CAM_TARGET = new THREE.Vector3(0, -0.5, 0)
+const CAM_TARGET_IN = new THREE.Vector3(0, 0.32, -0.15)
 
 function CameraRig({ scene, length, width, topView }) {
   const { camera, controls } = useThree()
+  const indoor = scene === 'indoor'
+  const orbit = indoor ? indoorOrbit(length, width) : null
   const span = Math.max(length, width)
-  const fitDistance =
-    scene === 'indoor'
-      ? Math.max(10, span * 1.15 + 5)
-      : Math.min(HEDGE_RADIUS - 3, Math.max(11, span * 1.4 + 5.5))
+  const fitDistance = indoor
+    ? orbit.maxDistance * 0.88
+    : Math.min(HEDGE_RADIUS - 3, Math.max(11, span * 1.4 + 5.5))
+  const lookAt = indoor ? CAM_TARGET_IN : CAM_TARGET
 
   // Ansicht wechseln setzt die Kamera neu
   useEffect(() => {
     if (topView) {
       camera.position.set(0.01, Math.max(14, length + 5), 0.01)
       camera.lookAt(0, 0, 0)
-    } else if (scene === 'indoor') {
-      camera.position.set(length * 0.55 + 4, 5.1, width + 6.5)
+    } else if (indoor) {
+      const { hall } = orbit
+      camera.fov = 52
+      camera.updateProjectionMatrix()
+      camera.position.set(
+        Math.min(length * 0.12, 1.15),
+        1.85,
+        Math.min(width / 2 + 3.4, hall.z / 2 - 0.75),
+      )
     } else {
+      camera.fov = 44
+      camera.updateProjectionMatrix()
       // flacherer Blickwinkel, damit Hecke und Baumreihe im Bild bleiben
       camera.position.set(length + 2, 3.8, width + 8)
     }
     if (controls) {
-      controls.target.copy(CAM_TARGET)
+      controls.target.copy(topView ? CAM_TARGET : lookAt)
       controls.update()
     }
     // Absichtlich ohne length/width: beim Ziehen der Massregler soll die vom
@@ -101,14 +113,58 @@ function CameraRig({ scene, length, width, topView }) {
     if (topView) {
       camera.position.set(0.01, Math.max(14, length + 5), 0.01)
       camera.lookAt(0, 0, 0)
+    } else if (indoor) {
+      const dir = camera.position.clone().sub(lookAt)
+      const len = dir.length()
+      if (len > orbit.maxDistance) {
+        camera.position.copy(lookAt).add(dir.multiplyScalar(orbit.maxDistance / len))
+      }
+      camera.position.y = Math.max(1.58, Math.min(2.7, camera.position.y))
     } else {
-      const dir = camera.position.clone().sub(CAM_TARGET)
+      const dir = camera.position.clone().sub(lookAt)
       if (dir.lengthSq() < 1e-6) return
-      camera.position.copy(CAM_TARGET).add(dir.normalize().multiplyScalar(fitDistance))
+      camera.position.copy(lookAt).add(dir.normalize().multiplyScalar(fitDistance))
     }
     if (controls) controls.update()
-  }, [fitDistance, length, topView, camera, controls])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fitDistance, length, topView, camera, controls, indoor])
 
+  return null
+}
+
+function IndoorOrbitClamp({ hall, enabled }) {
+  const { camera, controls } = useThree()
+  useFrame(() => {
+    if (!enabled || !controls || !hall) return
+    const maxX = hall.x / 2 - 0.45
+    const maxZ = hall.z / 2 - 0.45
+    const minY = 1.52
+    const maxY = Math.min(3.55, hall.h - 1.15)
+    const p = camera.position
+    let dirty = false
+    if (p.x > maxX) {
+      p.x = maxX
+      dirty = true
+    } else if (p.x < -maxX) {
+      p.x = -maxX
+      dirty = true
+    }
+    if (p.z > maxZ) {
+      p.z = maxZ
+      dirty = true
+    } else if (p.z < -maxZ) {
+      p.z = -maxZ
+      dirty = true
+    }
+    if (p.y < minY) {
+      p.y = minY
+      dirty = true
+    } else if (p.y > maxY) {
+      p.y = maxY
+      dirty = true
+    }
+    if (dirty) controls.update()
+  })
   return null
 }
 
@@ -355,15 +411,20 @@ export default function Scene() {
     () => jetFlowFromPlacement(jetPlacement),
     [jetPlacement?.x, jetPlacement?.z, jetPlacement?.wall],
   )
-  const deckMargin = outdoor ? 2.8 : 5.2
+  const indoorLimits = useMemo(() => indoorOrbit(length, width), [length, width])
+  const deckMargin = outdoor
+    ? 2.8
+    : Math.max(
+        3.2,
+        Math.min(
+          (indoorLimits.hall.x - length) / 2 - 0.35,
+          (indoorLimits.hall.z - width) / 2 - 0.35,
+        ),
+      )
   // Nicht über die Hecke hinaus zoomen, sonst blickt man von aussen ins Grundstück
-  const maxDist = useMemo(
-    () =>
-      outdoor
-        ? Math.min(HEDGE_RADIUS - 2, Math.max(18, length + width + 10))
-        : Math.max(12, length * 1.1 + 6),
-    [length, width, outdoor],
-  )
+  const maxDist = outdoor
+    ? Math.min(HEDGE_RADIUS - 2, Math.max(18, length + width + 10))
+    : indoorLimits.maxDistance
 
   return (
     <Canvas
@@ -476,14 +537,16 @@ export default function Scene() {
       </Suspense>
 
       <CameraRig scene={scene} length={length} width={width} topView={topView} />
+      <IndoorOrbitClamp hall={indoorLimits.hall} enabled={!outdoor && !topView} />
       <OrbitControls
         makeDefault
         enabled={!placing || placing.kind === 'stair' || placing.kind === 'countercurrent'}
         enablePan={false}
-        minDistance={6}
+        minDistance={outdoor ? 6 : indoorLimits.minDistance}
         maxDistance={maxDist}
-        maxPolarAngle={topView ? 0.18 : Math.PI / 2.15}
-        target={[0, -0.5, 0]}
+        minPolarAngle={topView || outdoor ? 0 : 0.7}
+        maxPolarAngle={topView ? 0.18 : outdoor ? Math.PI / 2.15 : 1.32}
+        target={outdoor ? [0, -0.5, 0] : [0, 0.32, -0.15]}
         enableDamping
         dampingFactor={0.08}
       />
