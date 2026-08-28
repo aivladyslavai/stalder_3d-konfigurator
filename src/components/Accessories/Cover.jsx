@@ -1,24 +1,25 @@
 import React, { useLayoutEffect, useMemo, useRef } from 'react'
+import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import { WALL_THICKNESS } from '../../data/config'
 
 /**
- * Polycarbonat-Rollladen: einzelne Lamellen bis zur Beckenmitte,
+ * Polycarbonat-Rollladen: einzelne Hohlkammer-Lamellen bis zur Beckenmitte,
  * Edelstahlwelle am Plus-X-Ende (gegenüber der Ecktreppe).
  */
 
-const SLAT_W = 0.064
-const SLAT_H = 0.017
-const PITCH = 0.067
-const ROLL_R = 0.092
+const SLAT_W = 0.072
+const SLAT_H = 0.022
+const PITCH = 0.082
+const ROLL_R = 0.1
 
 const PC = {
-  color: '#c9d4de',
-  roughness: 0.18,
-  metalness: 0.14,
-  clearcoat: 0.88,
-  clearcoatRoughness: 0.11,
-  envMapIntensity: 1.6,
+  color: '#d2dbe4',
+  roughness: 0.14,
+  metalness: 0.16,
+  clearcoat: 1,
+  clearcoatRoughness: 0.08,
+  envMapIntensity: 1.8,
 }
 
 const CHROME = {
@@ -34,15 +35,14 @@ function makeSlatGeometry(span) {
   const s = new THREE.Shape()
   const hw = SLAT_W / 2
   const h = SLAT_H
-  const r = 0.005
+  const r = 0.006
   s.moveTo(-hw + r, 0)
   s.lineTo(hw - r, 0)
   s.quadraticCurveTo(hw, 0, hw, r)
   s.lineTo(hw, h - r)
   s.quadraticCurveTo(hw, h, hw - r, h)
-  s.lineTo(0.007, h)
-  s.lineTo(0, h - 0.0026)
-  s.lineTo(-0.007, h)
+  s.lineTo(0.012, h)
+  s.quadraticCurveTo(0, h - 0.007, -0.012, h)
   s.lineTo(-hw + r, h)
   s.quadraticCurveTo(-hw, h, -hw, h - r)
   s.lineTo(-hw, r)
@@ -51,15 +51,14 @@ function makeSlatGeometry(span) {
   const g = new THREE.ExtrudeGeometry(s, {
     depth: span,
     bevelEnabled: true,
-    bevelThickness: 0.0012,
-    bevelSize: 0.0012,
+    bevelThickness: 0.0014,
+    bevelSize: 0.0014,
     bevelSegments: 1,
-    curveSegments: 4,
+    curveSegments: 5,
     steps: 1,
   })
   g.translate(0, -h / 2, -span / 2)
   g.computeVertexNormals()
-  g.computeBoundingBox()
   g.computeBoundingSphere()
   return g
 }
@@ -67,14 +66,15 @@ function makeSlatGeometry(span) {
 function Cover({ poolLength, poolWidth, waterY = -0.17 }) {
   const meshRef = useRef()
   const t = WALL_THICKNESS
-  const span = Math.max(0.6, poolWidth - t * 2 - 0.05)
-  const innerMaxX = poolLength / 2 - t - 0.04
-  const rx = innerMaxX - ROLL_R
-  const y = waterY + SLAT_H / 2 + 0.006
-  const coverStart = 0.04
-  const coverEnd = rx - ROLL_R - 0.01
+  const span = Math.max(0.6, poolWidth - t * 2 - 0.04)
+  const innerMaxX = poolLength / 2 - t - 0.03
+  const rx = innerMaxX - ROLL_R * 0.85
+  const y = waterY + SLAT_H / 2 + 0.01
+  // Offene Hälfte (Treppe, −X), Lamellen nur auf der Plus-X-Seite bis zur Mitte.
+  const coverStart = 0.08
+  const coverEnd = rx - ROLL_R - 0.02
   const flatCount = Math.max(4, Math.floor((coverEnd - coverStart) / PITCH))
-  const wrapCount = 6
+  const wrapCount = 7
   const count = flatCount + wrapCount
 
   const geometry = useMemo(() => makeSlatGeometry(span), [span])
@@ -90,9 +90,9 @@ function Cover({ poolLength, poolWidth, waterY = -0.17 }) {
       dummy.updateMatrix()
       mesh.setMatrixAt(i, dummy.matrix)
     }
-    const R = ROLL_R + SLAT_H * 0.2
+    const R = ROLL_R + SLAT_H * 0.25
     for (let j = 0; j < wrapCount; j++) {
-      const a = Math.PI + (j + 0.35) * 0.36
+      const a = Math.PI + (j + 0.2) * 0.34
       dummy.position.set(rx + Math.cos(a) * R, y + Math.sin(a) * R, 0)
       dummy.rotation.set(0, 0, a - Math.PI)
       dummy.updateMatrix()
@@ -118,36 +118,39 @@ function Cover({ poolLength, poolWidth, waterY = -0.17 }) {
         <meshPhysicalMaterial {...PC} />
       </instancedMesh>
 
+      <mesh position={[coverStart - 0.008, y, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <cylinderGeometry args={[SLAT_H * 0.52, SLAT_H * 0.52, span, 20]} />
+        <meshPhysicalMaterial {...PC} />
+      </mesh>
+
       {[-1, 1].map((side) => (
-        <mesh key={side} position={[coverMid, y + 0.002, side * (span / 2 + 0.012)]} castShadow>
-          <boxGeometry args={[coverLen + 0.04, 0.01, 0.014]} />
+        <mesh key={`rail-${side}`} position={[coverMid, y + 0.001, side * (span / 2 + 0.01)]} castShadow>
+          <boxGeometry args={[coverLen + 0.03, 0.012, 0.016]} />
           <meshPhysicalMaterial {...CHROME} />
         </mesh>
       ))}
 
       <group position={[rx, y, 0]}>
         <mesh rotation={[Math.PI / 2, 0, 0]} castShadow>
-          <cylinderGeometry args={[ROLL_R - 0.012, ROLL_R - 0.012, span + 0.05, 32]} />
+          <cylinderGeometry args={[ROLL_R - 0.014, ROLL_R - 0.014, span + 0.06, 36]} />
           <meshPhysicalMaterial {...CHROME} />
         </mesh>
         {[-1, 1].map((side) => (
-          <mesh key={side} position={[0, 0, side * (span / 2 + 0.018)]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-            <cylinderGeometry args={[ROLL_R + 0.012, ROLL_R + 0.012, 0.022, 28]} />
+          <mesh key={side} position={[0, 0, side * (span / 2 + 0.02)]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+            <cylinderGeometry args={[ROLL_R + 0.016, ROLL_R + 0.016, 0.024, 32]} />
             <meshPhysicalMaterial {...CHROME} />
           </mesh>
         ))}
       </group>
 
-      <group position={[poolLength / 2 + 0.28, 0, poolWidth / 2 - 0.38]}>
-        <mesh position={[0, 0.11, 0]} castShadow receiveShadow>
-          <boxGeometry args={[0.34, 0.22, 0.42]} />
-          <meshPhysicalMaterial {...CHROME} />
-        </mesh>
-        <mesh position={[-0.12, 0.11, 0]} rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[0.035, 0.035, 0.16, 16]} />
-          <meshStandardMaterial color="#1c1f22" roughness={0.45} metalness={0.4} />
-        </mesh>
-      </group>
+      {/* Rollladenkasten auf der Terrasse am kurzen Plus-X-Ende */}
+      <RoundedBox args={[0.36, 0.18, poolWidth + 0.1]} radius={0.03} smoothness={4} position={[poolLength / 2 + 0.26, 0.09, 0]} castShadow receiveShadow>
+        <meshPhysicalMaterial {...CHROME} />
+      </RoundedBox>
+      <mesh position={[poolLength / 2 + 0.26, 0.185, 0]}>
+        <boxGeometry args={[0.32, 0.012, poolWidth + 0.04]} />
+        <meshPhysicalMaterial color="#b7c2cc" metalness={0.35} roughness={0.32} />
+      </mesh>
     </group>
   )
 }

@@ -123,9 +123,17 @@ export function GltfProp({
   )
 }
 
-/** Einmal vorbereiten, dann günstig klonen – für Ahorne mit tausenden Meshes. */
-export function GltfCopies({ url, items, merge = false, foliage = false, castShadow = true, receiveShadow = true }) {
-  const proto = usePrepared(url, { height: 1, merge, foliage, castShadow, receiveShadow })
+/** Einmal vorbereiten, dann günstig klonen – für Palmen und Unterwuchs. */
+export function GltfCopies({
+  url,
+  items,
+  merge = true,
+  foliage = false,
+  castShadow = true,
+  receiveShadow = true,
+  sink = 0,
+}) {
+  const proto = usePrepared(url, { height: 1, merge, foliage, castShadow, receiveShadow, sink })
   return (
     <>
       {items.map((t, i) => (

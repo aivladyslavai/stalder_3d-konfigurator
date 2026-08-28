@@ -37,28 +37,6 @@ function makeCloudTexture() {
   return tex
 }
 
-function Puff({ texture, position, size, opacity, dusk }) {
-  const ref = useRef()
-  useFrame(({ camera }) => {
-    if (ref.current) ref.current.quaternion.copy(camera.quaternion)
-  })
-  return (
-    <mesh ref={ref} position={position} renderOrder={-2} frustumCulled={false}>
-      <planeGeometry args={[size, size * 0.52]} />
-      <meshBasicMaterial
-        map={texture}
-        color={dusk ? '#d2b8a4' : '#ffffff'}
-        transparent
-        opacity={opacity}
-        depthWrite={false}
-        fog={false}
-        toneMapped={false}
-        side={THREE.DoubleSide}
-      />
-    </mesh>
-  )
-}
-
 const CLUSTERS = [
   { p: [2, 17.5, -24], s: 20, o: 0.92 },
   { p: [-13, 16.2, -20], s: 15, o: 0.84 },
@@ -69,12 +47,21 @@ const CLUSTERS = [
 
 function DayClouds({ dusk = false }) {
   const texture = useMemo(makeCloudTexture, [])
+  const puffs = useRef()
   useEffect(() => () => texture.dispose(), [texture])
+
+  useFrame(({ camera }) => {
+    const g = puffs.current
+    if (!g) return
+    g.children.forEach((child) => {
+      child.quaternion.copy(camera.quaternion)
+    })
+  })
 
   return (
     <group>
       <mesh renderOrder={-20} frustumCulled={false}>
-        <sphereGeometry args={[85, 24, 16]} />
+        <sphereGeometry args={[85, 16, 12]} />
         <meshBasicMaterial
           color={dusk ? '#243044' : '#5aa3d4'}
           side={THREE.BackSide}
@@ -83,16 +70,23 @@ function DayClouds({ dusk = false }) {
           toneMapped={false}
         />
       </mesh>
-      {CLUSTERS.map((c, i) => (
-        <Puff
-          key={i}
-          texture={texture}
-          position={c.p}
-          size={c.s}
-          opacity={dusk ? c.o * 0.55 : c.o}
-          dusk={dusk}
-        />
-      ))}
+      <group ref={puffs}>
+        {CLUSTERS.map((c, i) => (
+          <mesh key={i} position={c.p} renderOrder={-2} frustumCulled={false}>
+            <planeGeometry args={[c.s, c.s * 0.52]} />
+            <meshBasicMaterial
+              map={texture}
+              color={dusk ? '#d2b8a4' : '#ffffff'}
+              transparent
+              opacity={dusk ? c.o * 0.55 : c.o}
+              depthWrite={false}
+              fog={false}
+              toneMapped={false}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        ))}
+      </group>
     </group>
   )
 }

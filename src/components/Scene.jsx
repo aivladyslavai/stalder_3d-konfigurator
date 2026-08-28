@@ -27,7 +27,7 @@ import { usePoolConfig, getPoolMaterial } from '../hooks/usePoolConfig'
 import { visualShapeForSystem, findStair } from '../data/config'
 import { resolveSnap } from '../three/placement'
 import { waterLevelFor } from '../three/footprint'
-import { FLOAT_LAYER } from '../three/layers'
+import { FLOAT_LAYER, SCENERY_LAYER, applyLayer } from '../three/layers'
 
 function lighting(scene, time) {
   if (scene === 'indoor') {
@@ -112,18 +112,30 @@ function CameraRig({ scene, length, width, topView }) {
   return null
 }
 
-function EnableFloatLighting({ children }) {
+function EnableSceneLayers({ children }) {
   const { camera } = useThree()
   const root = useRef()
 
   useLayoutEffect(() => {
     camera.layers.enable(FLOAT_LAYER)
+    camera.layers.enable(SCENERY_LAYER)
     root.current?.traverse((o) => {
-      if (o.isLight) o.layers.enable(FLOAT_LAYER)
+      if (o.isLight) {
+        o.layers.enable(FLOAT_LAYER)
+        o.layers.enable(SCENERY_LAYER)
+      }
     })
-  })
+  }, [camera])
 
   return <group ref={root}>{children}</group>
+}
+
+function Scenery({ children }) {
+  const ref = useRef()
+  useLayoutEffect(() => {
+    applyLayer(ref.current, SCENERY_LAYER)
+  })
+  return <group ref={ref}>{children}</group>
 }
 
 // Halbtransparentes Grau für die Vorschau des zu platzierenden Produkts.
@@ -330,7 +342,7 @@ export default function Scene() {
     () => ({ poolLength: length, poolWidth: width, poolDepth: depth }),
     [length, width, depth],
   )
-  const L = lighting(scene, timeOfDay)
+  const L = useMemo(() => lighting(scene, timeOfDay), [scene, timeOfDay])
   const outdoor = scene !== 'indoor'
   const deckMargin = outdoor ? 2.8 : 5.2
   const placingStair = placing?.kind === 'stair'
@@ -346,9 +358,15 @@ export default function Scene() {
   return (
     <Canvas
       shadows
-      dpr={[1, 2]}
+      dpr={[1, 1.5]}
+      performance={{ min: 0.75, debounce: 200 }}
       camera={{ position: [11, 6, 11], fov: 44 }}
-      gl={{ antialias: false, toneMapping: THREE.NoToneMapping, powerPreference: 'high-performance' }}
+      gl={{
+        antialias: false,
+        toneMapping: THREE.NoToneMapping,
+        powerPreference: 'high-performance',
+        stencil: false,
+      }}
     >
       <color attach="background" args={[L.bg]} />
       <fog attach="fog" args={L.fog} />
@@ -356,14 +374,9 @@ export default function Scene() {
       {L.sky && (
         <Sky turbidity={L.sky.turbidity} rayleigh={L.sky.rayleigh} mieCoefficient={0.005} mieDirectionalG={0.85} sunPosition={L.sky.sun} />
       )}
-      {outdoor && (
-        <Suspense fallback={null}>
-          <DayClouds dusk={timeOfDay === 'dusk'} />
-        </Suspense>
-      )}
 
-      <SoftShadows size={22} samples={12} focus={0.7} />
-      <EnableFloatLighting>
+      <SoftShadows size={18} samples={8} focus={0.75} />
+      <EnableSceneLayers>
         <ambientLight intensity={L.ambient} />
         <hemisphereLight args={['#d7e6f2', '#7a8a62', L.hemi]} />
         <directionalLight
@@ -371,30 +384,35 @@ export default function Scene() {
           intensity={L.sun.intensity}
           color={L.sun.color}
           castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
+          shadow-mapSize-width={1536}
+          shadow-mapSize-height={1536}
           shadow-bias={-0.0002}
-          shadow-camera-left={outdoor ? -28 : -18}
-          shadow-camera-right={outdoor ? 28 : 18}
-          shadow-camera-top={outdoor ? 28 : 18}
-          shadow-camera-bottom={outdoor ? -28 : -18}
+          shadow-camera-left={outdoor ? -20 : -16}
+          shadow-camera-right={outdoor ? 20 : 16}
+          shadow-camera-top={outdoor ? 20 : 16}
+          shadow-camera-bottom={outdoor ? -20 : -16}
           shadow-camera-near={1}
-          shadow-camera-far={outdoor ? 70 : 50}
+          shadow-camera-far={outdoor ? 48 : 40}
         />
-      </EnableFloatLighting>
+      </EnableSceneLayers>
 
       <Suspense fallback={null}>
         <Environment preset={L.env} environmentIntensity={L.envIntensity} />
-        {outdoor && (
-          <Ground
-            holeLength={length + deckMargin * 2}
-            holeWidth={width + deckMargin * 2}
-            timeOfDay={timeOfDay}
-          />
-        )}
-        <Deck length={length} width={width} shape={shape} deck={deck} margin={deckMargin} />
+        <Scenery>
+          {outdoor && (
+            <DayClouds dusk={timeOfDay === 'dusk'} />
+          )}
+          {outdoor && (
+            <Ground
+              holeLength={length + deckMargin * 2}
+              holeWidth={width + deckMargin * 2}
+              timeOfDay={timeOfDay}
+            />
+          )}
+          <Deck length={length} width={width} shape={shape} deck={deck} margin={deckMargin} />
+          {outdoor && <Vegetation timeOfDay={timeOfDay} />}
+        </Scenery>
         {!outdoor && <Indoor poolLength={length} poolWidth={width} />}
-        {outdoor && <Vegetation timeOfDay={timeOfDay} />}
         <Surroundings
           poolLength={length}
           poolWidth={width}
@@ -414,7 +432,7 @@ export default function Scene() {
           envMode={scene === 'indoor' ? 'indoor' : timeOfDay}
           pickable={!placing}
           resolution={placing ? 256 : 512}
-          samples={placing ? 3 : 8}
+          samples={placing ? 3 : 5}
         />
         {stairItem.visual && !placingStair && (
           <Stairs type={stairItem.visual} steps={stairItem.steps} wall={stairWall} corner={stairCorner} {...acc} />
@@ -440,13 +458,10 @@ export default function Scene() {
         dampingFactor={0.08}
       />
 
-      <EffectComposer multisampling={0}>
-        <Bloom
-          mipmapBlur
-          luminanceThreshold={scene === 'indoor' || timeOfDay === 'dusk' ? 0.75 : 1.15}
-          luminanceSmoothing={0.3}
-          intensity={scene === 'indoor' || timeOfDay === 'dusk' ? 0.4 : 0}
-        />
+      <EffectComposer multisampling={0} stencilBuffer={false}>
+        {(scene === 'indoor' || timeOfDay === 'dusk') && (
+          <Bloom mipmapBlur luminanceThreshold={0.75} luminanceSmoothing={0.3} intensity={0.4} />
+        )}
         <SMAA />
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
         <Vignette eskil={false} offset={0.28} darkness={scene === 'indoor' || timeOfDay === 'dusk' ? 0.4 : 0.18} />

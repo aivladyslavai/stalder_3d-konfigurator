@@ -33,6 +33,7 @@ function House() {
         xz: 13.2,
         hideDomes: true,
         hideFloors: true,
+        merge: true,
         sink: 0,
         receiveShadow: true,
       }),

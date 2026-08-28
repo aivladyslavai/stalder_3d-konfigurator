@@ -77,6 +77,9 @@ function LedStrip({ poolLength, poolWidth, poolDepth }) {
   const count = poolLength > 7 ? 2 : 1
   const lensRefs = useRef([])
   const lightRefs = useRef([])
+  const emit = useRef(new THREE.Color())
+  const tint = useRef(new THREE.Color())
+  const white = useRef(new THREE.Color('#e8fbff'))
   const t = WALL_THICKNESS
   const z = -poolWidth / 2 + t + 0.06
   const y = -Math.min(0.4, poolDepth * 0.3)
@@ -84,17 +87,18 @@ function LedStrip({ poolLength, poolWidth, poolDepth }) {
 
   useFrame(({ clock }) => {
     const hue = (0.52 + Math.sin(clock.elapsedTime * 0.18) * 0.05) % 1
-    const emit = new THREE.Color().setHSL(hue, 0.75, 0.52)
-    const tint = emit.clone().lerp(new THREE.Color('#e8fbff'), 0.4)
+    emit.current.setHSL(hue, 0.75, 0.52)
+    tint.current.copy(emit.current).lerp(white.current, 0.4)
     lensRefs.current.forEach((m) => {
       if (!m) return
-      m.emissive.copy(emit)
-      m.color.copy(tint)
+      m.emissive.copy(emit.current)
+      m.color.copy(tint.current)
     })
+    const pulse = 2.6 + Math.sin(clock.elapsedTime * 1.3) * 0.25
     lightRefs.current.forEach((l) => {
       if (!l) return
-      l.color.copy(emit)
-      l.intensity = 2.6 + Math.sin(clock.elapsedTime * 1.3) * 0.25
+      l.color.copy(emit.current)
+      l.intensity = pulse
     })
   })
 

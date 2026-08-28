@@ -6,7 +6,7 @@ import { WALL_THICKNESS } from '../data/config'
 import { makeSkyEnvTexture } from '../three/textures'
 import { cornerRadiusFor, waterLevelFor } from '../three/footprint'
 import { injectWaterWaves } from '../three/waterShader'
-import { FLOAT_LAYER, setFloatsVisible } from '../three/layers'
+import { FLOAT_LAYER, SCENERY_LAYER, setFloatsVisible } from '../three/layers'
 
 /**
  * Ruhige Pool-Oberfläche: dichte Tessellierung, Gerstner-Wellen (leichte Brise),
@@ -45,8 +45,8 @@ function makeWaterGeometry(length, width, radius, wall) {
   const hx = lw / 2
   const hz = ww / 2
   const r = Math.max(0, Math.min(radius - wall, hx - 0.02, hz - 0.02))
-  const segX = Math.max(48, Math.min(160, Math.ceil(lw * 22)))
-  const segZ = Math.max(32, Math.min(120, Math.ceil(ww * 22)))
+  const segX = Math.max(36, Math.min(96, Math.ceil(lw * 14)))
+  const segZ = Math.max(24, Math.min(64, Math.ceil(ww * 14)))
   const g = new THREE.PlaneGeometry(lw, ww, segX, segZ)
   g.rotateX(-Math.PI / 2)
   if (r > 0.001) {
@@ -82,7 +82,7 @@ function Water({
   envMode = 'day',
   pickable = true,
   resolution = 512,
-  samples = 8,
+  samples = 5,
 }) {
   const meshRef = useRef()
   const matRef = useRef()
@@ -128,13 +128,7 @@ function Water({
 
     setFloatsVisible(false)
     state.camera.layers.disable(FLOAT_LAYER)
-    const hidden = []
-    state.scene.traverse((o) => {
-      if (o.userData?.waterFloat) {
-        hidden.push(o)
-        o.visible = false
-      }
-    })
+    state.camera.layers.disable(SCENERY_LAYER)
 
     const prevTone = state.gl.toneMapping
     state.gl.toneMapping = THREE.NoToneMapping
@@ -145,25 +139,22 @@ function Water({
     mesh.visible = true
     state.gl.toneMapping = prevTone
 
-    hidden.forEach((o) => {
-      o.visible = true
-    })
     setFloatsVisible(true)
     state.camera.layers.enable(FLOAT_LAYER)
+    state.camera.layers.enable(SCENERY_LAYER)
 
-    if (matRef.current) matRef.current.buffer = fbo.texture
-  }, -1)
-
-  useFrame(({ clock }) => {
-    const time = clock.elapsedTime
-    patchWaveMaterial(matRef.current)
-    const shader = matRef.current?.userData?.shader
-    if (shader?.uniforms?.uTime) {
-      shader.uniforms.uTime.value = time
-      shader.uniforms.uHalf.value.set(hx, hz)
-      shader.uniforms.uCornerR.value = cornerR
+    const mat = matRef.current
+    if (mat) {
+      mat.buffer = fbo.texture
+      patchWaveMaterial(mat)
+      const shader = mat.userData?.shader
+      if (shader?.uniforms?.uTime) {
+        shader.uniforms.uTime.value = state.clock.elapsedTime
+        shader.uniforms.uHalf.value.set(hx, hz)
+        shader.uniforms.uCornerR.value = cornerR
+      }
     }
-  })
+  }, -1)
 
   useEffect(() => () => {
     camera.layers.enable(FLOAT_LAYER)

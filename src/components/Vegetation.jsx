@@ -43,7 +43,7 @@ const DATES = [
 
 function buildHedge() {
   const pts = []
-  const n = 80
+  const n = 56
   for (let i = 0; i <= n; i++) {
     const a = (i / n) * Math.PI * 2
     const r = HEDGE_RADIUS + Math.sin(i * 0.7) * 0.12
@@ -89,9 +89,9 @@ function Vegetation({ timeOfDay = 'day' }) {
   return (
     <group>
       <House />
-      <GltfCopies url="/models/palm.glb" items={PNG_PALMS} />
-      <GltfCopies url="/models/coconut-palm.glb" items={COCONUTS} />
-      <GltfCopies url="/models/date-palm.glb" items={DATES} />
+      <GltfCopies url="/models/palm.glb" merge items={PNG_PALMS} />
+      <GltfCopies url="/models/coconut-palm.glb" merge items={COCONUTS} />
+      <GltfCopies url="/models/date-palm.glb" merge items={DATES} />
 
       <mesh geometry={hedge} receiveShadow>
         <meshStandardMaterial
