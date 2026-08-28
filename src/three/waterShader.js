@@ -75,33 +75,44 @@ void jetEval(vec2 xz, out float env, out float foam, out vec3 disp, out vec3 nPe
   float along = dot(toP, dir);
   float across = dot(toP, lat);
 
-  float pump = 0.92 + 0.08 * sin(uTime * 5.2);
-  float width = mix(0.16, 0.46, pow(clamp(along / 2.8, 0.0, 1.0), 0.72));
-  float radial = exp(-(across * across) / max(2.0 * width * width, 1e-4));
-  float stream = smoothstep(-0.04, 0.18, along) * exp(-max(along, 0.0) * 0.28);
-  env = radial * stream * pump;
+  float pump = 0.9 + 0.1 * sin(uTime * 4.6);
+  float along01 = pow(clamp(along / 3.0, 0.0, 1.0), 0.52);
+  float widthCore = mix(0.09, 0.38, along01);
+  float widthWake = mix(0.22, 0.95, along01);
+  float core = exp(-(across * across) / max(2.0 * widthCore * widthCore, 1e-4));
+  float wake = exp(-(across * across) / max(2.0 * widthWake * widthWake, 1e-4));
+  float stream = smoothstep(-0.04, 0.16, along) * exp(-max(along, 0.0) * 0.12);
+  env = (0.38 * core + 0.62 * wake) * stream * pump;
 
-  float phaseFast = along * 14.0 - uTime * 8.4;
-  float phaseMid = along * 7.2 - uTime * 4.6;
-  float phaseSlow = along * 3.4 - uTime * 2.2;
-  float travel = sin(phaseFast + across * 3.2) * 0.42;
-  travel += sin(phaseMid + across * 6.5) * 0.3;
-  travel += sin(phaseSlow + across * 2.4) * 0.22;
+  float phaseFast = along * 16.0 - uTime * 10.2;
+  float phaseMid = along * 8.6 - uTime * 5.4;
+  float phaseSlow = along * 4.1 - uTime * 2.6;
+  float travel = sin(phaseFast + across * 3.6) * 0.38;
+  travel += sin(phaseMid + across * 7.4) * 0.3;
+  travel += sin(phaseSlow + across * 2.2) * 0.26;
+  travel += sin(phaseFast * 1.48 + across * 14.0) * 0.12;
 
-  vec2 adv = vec2(along * 4.2 - uTime * 3.1, across * 11.0);
+  float armW = 0.06 + max(along, 0.0) * 0.028;
+  float armOff = abs(across) - max(along, 0.0) * 0.32;
+  float vArm = exp(-(armOff * armOff) / max(2.0 * armW * armW, 1e-4));
+  vArm *= smoothstep(0.12, 0.55, along) * exp(-along * 0.26) * pump;
+
+  vec2 adv = vec2(along * 4.6 - uTime * 3.4, across * 12.0);
   float turb = fbm3(adv) - 0.44;
-  turb += 0.36 * (fbm3(adv * 2.05 + vec2(uTime * 0.22, 5.0)) - 0.5);
-  float near = exp(-max(along, 0.0) * 2.8) * exp(-across * across * 28.0) * smoothstep(-0.05, 0.14, along);
+  turb += 0.4 * (fbm3(adv * 2.1 + vec2(uTime * 0.24, 5.0)) - 0.5);
+  float near = exp(-max(along, 0.0) * 2.6) * exp(-across * across * 32.0) * smoothstep(-0.05, 0.12, along);
 
-  disp.y = env * (travel * 0.018 + turb * 0.012);
-  disp.y += near * max(turb, 0.0) * 0.01;
-  disp.xz = dir * env * (0.012 + travel * 0.003);
+  disp.y = env * (travel * 0.03 + turb * 0.02);
+  disp.y += vArm * 0.012 * sin(along * 11.0 - uTime * 6.8);
+  disp.y += near * max(turb, 0.0) * 0.016;
+  disp.xz = dir * env * (0.02 + travel * 0.006);
 
-  nPerturb.xz -= dir * env * travel * 0.42;
-  nPerturb.xz -= lat * (across / max(width, 0.08)) * env * 0.28;
-  nPerturb.xz += vec2(turb, fbm3(adv + 4.2) - 0.5) * (near * 0.22 + env * 0.12);
+  nPerturb.xz -= dir * (env * travel * 0.92 + vArm * 0.4);
+  nPerturb.xz -= lat * (across / max(widthWake, 0.08)) * env * 0.62;
+  nPerturb.xz -= lat * sign(across + 1e-5) * vArm * 0.32;
+  nPerturb.xz += vec2(turb, fbm3(adv + 4.2) - 0.5) * (near * 0.55 + env * 0.22);
 
-  foam = clamp(near * 0.1 + env * 0.05 * smoothstep(0.2, 0.7, abs(travel)), 0.0, 0.28);
+  foam = clamp(near * 0.16 + env * 0.07 * smoothstep(0.12, 0.55, abs(travel)) + vArm * 0.08, 0.0, 0.38);
 }
 
 vec3 waterFlowNormal(vec2 xz) {
@@ -109,7 +120,7 @@ vec3 waterFlowNormal(vec2 xz) {
   vec2 dir = normalize(uJetDir);
   vec2 lat = vec2(-dir.y, dir.x);
   vec2 toP = xz - uJetOrigin;
-  vec2 p = vec2(dot(toP, dir) * 10.0 - uTime * 4.2, dot(toP, lat) * 24.0);
+  vec2 p = vec2(dot(toP, dir) * 6.5 - uTime * 3.6, dot(toP, lat) * 14.0);
   float e = 0.04;
   float ha = (fbm3(p - vec2(e, 0.0)) - fbm3(p + vec2(e, 0.0))) / (2.0 * e);
   float hb = (fbm3(p - vec2(0.0, e)) - fbm3(p + vec2(0.0, e))) / (2.0 * e);
@@ -217,14 +228,14 @@ export function injectWaterWaves(shader) {
         vec3 micro = waterMicroNormal(vPoolXZ);
         vec3 flowN = waterFlowNormal(vPoolXZ);
         vec3 nWorld = inverseTransformDirection(normal, viewMatrix);
-        nWorld = normalize(mix(nWorld, micro, 0.26 + jetEnv * 0.12));
-        nWorld = normalize(mix(nWorld, flowN, jetEnv * 0.18));
-        nWorld = normalize(nWorld + vec3(jetN.xz * 0.22, 0.0));
+        nWorld = normalize(mix(nWorld, micro, 0.26 + jetEnv * 0.22));
+        nWorld = normalize(mix(nWorld, flowN, jetEnv * 0.36));
+        nWorld = normalize(nWorld + vec3(jetN.xz * 0.42, 0.0));
         float inside = max(0.0, -sdRoundBox(vPoolXZ, uHalf, uCornerR));
         vec2 away = normalize(vPoolXZ + vec2(1e-5));
         nWorld = normalize(mix(nWorld, normalize(vec3(-away.x, 1.8, -away.y)), exp(-inside * 48.0) * 0.14));
         normal = normalize(transformDirection(nWorld, viewMatrix));
-        roughnessFactor = mix(roughnessFactor, 0.08, jetFoamAmt * 0.22);
+        roughnessFactor = mix(roughnessFactor, 0.12, jetFoamAmt * 0.28);
       }
       `,
     )
@@ -305,26 +316,37 @@ function jetDispAt(x, z, t, jet) {
   const oz = z - jet.origin[1]
   const along = ox * dirx + oz * dirz
   const across = ox * latx + oz * latz
-  const pump = 0.92 + 0.08 * Math.sin(t * 5.2)
-  const width = 0.16 + (0.46 - 0.16) * Math.pow(Math.min(1, Math.max(0, along / 2.8)), 0.72)
-  const radial = Math.exp(-(across * across) / Math.max(2 * width * width, 1e-4))
-  const along01 = along < -0.04 ? 0 : along > 0.18 ? 1 : (along + 0.04) / 0.22
-  const env = radial * along01 * Math.exp(-Math.max(along, 0) * 0.28) * pump
+  const pump = 0.9 + 0.1 * Math.sin(t * 4.6)
+  const along01 = Math.pow(Math.min(1, Math.max(0, along / 3.0)), 0.52)
+  const widthCore = 0.09 + (0.38 - 0.09) * along01
+  const widthWake = 0.22 + (0.95 - 0.22) * along01
+  const core = Math.exp(-(across * across) / Math.max(2 * widthCore * widthCore, 1e-4))
+  const wake = Math.exp(-(across * across) / Math.max(2 * widthWake * widthWake, 1e-4))
+  const alongGate = along < -0.04 ? 0 : along > 0.16 ? 1 : (along + 0.04) / 0.2
+  const env = (0.38 * core + 0.62 * wake) * alongGate * Math.exp(-Math.max(along, 0) * 0.12) * pump
   const travel =
-    Math.sin(along * 14 - t * 8.4 + across * 3.2) * 0.42 +
-    Math.sin(along * 7.2 - t * 4.6 + across * 6.5) * 0.3 +
-    Math.sin(along * 3.4 - t * 2.2 + across * 2.4) * 0.22
-  const advx = along * 4.2 - t * 3.1
-  const advz = across * 11
+    Math.sin(along * 16 - t * 10.2 + across * 3.6) * 0.38 +
+    Math.sin(along * 8.6 - t * 5.4 + across * 7.4) * 0.3 +
+    Math.sin(along * 4.1 - t * 2.6 + across * 2.2) * 0.26 +
+    Math.sin(along * 16 * 1.48 - t * 10.2 * 1.48 + across * 14) * 0.12
+  const advx = along * 4.6 - t * 3.4
+  const advz = across * 12
   let turb = fbm3(advx, advz) - 0.44
-  turb += 0.36 * (fbm3(advx * 2.05 + t * 0.22, advz * 2.05 + 5) - 0.5)
-  const near01 = along < -0.05 ? 0 : along > 0.14 ? 1 : (along + 0.05) / 0.19
-  const near = Math.exp(-Math.max(along, 0) * 2.8) * Math.exp(-across * across * 28) * near01
-  out.y = env * (travel * 0.018 + turb * 0.012) + near * Math.max(turb, 0) * 0.01
-  out.x = dirx * env * (0.012 + travel * 0.003)
-  out.z = dirz * env * (0.012 + travel * 0.003)
-  out.nx = -(dirx * env * travel * 0.42 + latx * (across / Math.max(width, 0.08)) * env * 0.28)
-  out.nz = -(dirz * env * travel * 0.42 + latz * (across / Math.max(width, 0.08)) * env * 0.28)
+  turb += 0.4 * (fbm3(advx * 2.1 + t * 0.24, advz * 2.1 + 5) - 0.5)
+  const near01 = along < -0.05 ? 0 : along > 0.12 ? 1 : (along + 0.05) / 0.17
+  const near = Math.exp(-Math.max(along, 0) * 2.6) * Math.exp(-across * across * 32) * near01
+  const armW = 0.06 + Math.max(along, 0) * 0.028
+  const armOff = Math.abs(across) - Math.max(along, 0) * 0.32
+  const vArm =
+    Math.exp(-(armOff * armOff) / Math.max(2 * armW * armW, 1e-4)) *
+    (along < 0.12 ? 0 : along > 0.55 ? 1 : (along - 0.12) / 0.43) *
+    Math.exp(-along * 0.26) *
+    pump
+  out.y = env * (travel * 0.03 + turb * 0.02) + vArm * 0.012 * Math.sin(along * 11 - t * 6.8) + near * Math.max(turb, 0) * 0.016
+  out.x = dirx * env * (0.02 + travel * 0.006)
+  out.z = dirz * env * (0.02 + travel * 0.006)
+  out.nx = -(dirx * (env * travel * 0.92 + vArm * 0.4) + latx * (across / Math.max(widthWake, 0.08)) * env * 0.62)
+  out.nz = -(dirz * (env * travel * 0.92 + vArm * 0.4) + latz * (across / Math.max(widthWake, 0.08)) * env * 0.62)
   return out
 }
 

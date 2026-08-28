@@ -45,9 +45,9 @@ function makeWaterGeometry(length, width, radius, wall, dense = false) {
   const hx = lw / 2
   const hz = ww / 2
   const r = Math.max(0, Math.min(radius - wall, hx - 0.02, hz - 0.02))
-  const dens = dense ? 26 : 12
-  const segX = Math.max(32, Math.min(120, Math.ceil(lw * dens)))
-  const segZ = Math.max(20, Math.min(80, Math.ceil(ww * dens)))
+  const dens = dense ? 32 : 12
+  const segX = Math.max(32, Math.min(160, Math.ceil(lw * dens)))
+  const segZ = Math.max(20, Math.min(100, Math.ceil(ww * dens)))
   const g = new THREE.PlaneGeometry(lw, ww, segX, segZ)
   g.rotateX(-Math.PI / 2)
   if (r > 0.001) {
@@ -62,7 +62,7 @@ function makeWaterGeometry(length, width, radius, wall, dense = false) {
   return g
 }
 
-const WAVE_KEY = 'wj14'
+const WAVE_KEY = 'wj16'
 
 function patchWaveMaterial(mat) {
   if (!mat || mat.userData.waveKey === WAVE_KEY) return

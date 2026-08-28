@@ -58,9 +58,9 @@ const fragmentShader = /* glsl */ `
     vec2 toP = xz - uJetOrigin;
     float along = dot(toP, dir);
     float across = dot(toP, lat);
-    float width = mix(0.06, 0.42, pow(clamp(along / 3.1, 0.0, 1.0), 0.7));
+    float width = mix(0.08, 0.7, pow(clamp(along / 3.1, 0.0, 1.0), 0.62));
     float radial = exp(-(across * across) / max(2.0 * width * width, 1e-4));
-    float stream = smoothstep(-0.03, 0.12, along) * exp(-max(along, 0.0) * 0.2);
+    float stream = smoothstep(-0.03, 0.12, along) * exp(-max(along, 0.0) * 0.13);
     float travel = 0.5 + 0.5 * sin(along * 9.0 - uTime * 6.4 + across * 4.0);
     return radial * stream * travel;
   }
@@ -137,7 +137,7 @@ function Caustics({ length, width, depth, shape, led, jet = null }) {
         transparent: true,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
-        customProgramCacheKey: () => 'pool-caustics-jet-v2',
+        customProgramCacheKey: () => 'pool-caustics-jet-v4',
       }),
     [uniforms],
   )
