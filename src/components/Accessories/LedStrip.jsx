@@ -1,71 +1,117 @@
-import React, { useRef } from 'react'
+import React, { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { WALL_THICKNESS } from '../../data/config'
 
 /**
- * RGBW-LED im Becken – nachts deutlich stärker (Bloom + Unterwasserlicht).
+ * Unterwasser-RGBW-Scheinwerfer nur an einer Längswand (Hausseite, −Z).
+ * Linse zeigt ins Becken; aus der Standardkamera ist die Fläche sichtbar.
+ * Bis 7 m eine Lampe, darüber zwei.
  */
-function LedStrip({ poolLength, poolWidth, poolDepth, night = false }) {
-  const stripMats = [useRef(), useRef(), useRef(), useRef()]
-  const lightRefs = [useRef(), useRef(), useRef(), useRef()]
-  const glowRefs = [useRef(), useRef()]
-  const halfW = poolWidth / 2
-  const halfL = poolLength / 2
-  const color = useRef(new THREE.Color())
-  const glow = useRef(new THREE.Color())
+
+const CHROME = {
+  color: '#f4f8fa',
+  metalness: 0.98,
+  roughness: 0.07,
+  envMapIntensity: 2.5,
+  clearcoat: 0.7,
+  clearcoatRoughness: 0.06,
+}
+
+function lampXs(poolLength, count) {
+  const inset = poolLength / 2 - WALL_THICKNESS - 0.55
+  if (count === 2) return [-inset * 0.62, inset * 0.62]
+  return [0]
+}
+
+function RgbwLamp({ lensRef, lightRef }) {
+  return (
+    <group>
+      {/* Dose entlang lokaler +Z (ins Becken) */}
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, -0.055]} castShadow>
+        <cylinderGeometry args={[0.155, 0.175, 0.11, 48]} />
+        <meshPhysicalMaterial color="#b7c2c8" metalness={0.88} roughness={0.24} />
+      </mesh>
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.012]} castShadow>
+        <cylinderGeometry args={[0.175, 0.175, 0.022, 48]} />
+        <meshPhysicalMaterial {...CHROME} />
+      </mesh>
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.026]}>
+        <cylinderGeometry args={[0.14, 0.14, 0.012, 48]} />
+        <meshPhysicalMaterial {...CHROME} />
+      </mesh>
+      <mesh position={[0, 0, 0.034]}>
+        <torusGeometry args={[0.118, 0.012, 12, 48]} />
+        <meshStandardMaterial color="#121416" roughness={0.65} metalness={0.2} />
+      </mesh>
+      <mesh position={[0, 0, 0.042]}>
+        <circleGeometry args={[0.108, 48]} />
+        <meshStandardMaterial
+          ref={lensRef}
+          color="#c5f2ff"
+          emissive="#3ec8ff"
+          emissiveIntensity={2.2}
+          roughness={0.18}
+          metalness={0}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.05]}>
+        <sphereGeometry args={[0.09, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshPhysicalMaterial
+          color="#dff8ff"
+          roughness={0.08}
+          metalness={0}
+          transparent
+          opacity={0.35}
+          transmission={0.2}
+          thickness={0.03}
+        />
+      </mesh>
+      <pointLight ref={lightRef} position={[0, 0, 0.32]} color="#7adfff" intensity={2.8} distance={5.5} decay={2} />
+    </group>
+  )
+}
+
+function LedStrip({ poolLength, poolWidth, poolDepth }) {
+  const count = poolLength > 7 ? 2 : 1
+  const lensRefs = useRef([])
+  const lightRefs = useRef([])
+  const t = WALL_THICKNESS
+  const z = -poolWidth / 2 + t + 0.06
+  const y = -Math.min(0.4, poolDepth * 0.3)
+  const xs = useMemo(() => lampXs(poolLength, count), [poolLength, count])
 
   useFrame(({ clock }) => {
-    const hue = (0.52 + Math.sin(clock.elapsedTime * 0.22) * 0.08) % 1
-    color.current.setHSL(hue, 0.95, night ? 0.62 : 0.55)
-    glow.current.copy(color.current).multiplyScalar(night ? 5.5 : 3.0)
-    stripMats.forEach((r) => r.current && r.current.color.copy(glow.current))
-    lightRefs.forEach((r) => {
-      if (!r.current) return
-      r.current.color.copy(color.current)
-      r.current.intensity = night ? 9 : 4.5
+    const hue = (0.52 + Math.sin(clock.elapsedTime * 0.18) * 0.05) % 1
+    const emit = new THREE.Color().setHSL(hue, 0.75, 0.52)
+    const tint = emit.clone().lerp(new THREE.Color('#e8fbff'), 0.4)
+    lensRefs.current.forEach((m) => {
+      if (!m) return
+      m.emissive.copy(emit)
+      m.color.copy(tint)
     })
-    glowRefs.forEach((r) => {
-      if (!r.current) return
-      r.current.material.opacity = night ? 0.22 + Math.sin(clock.elapsedTime * 1.4) * 0.04 : 0.08
-      r.current.material.color.copy(color.current)
+    lightRefs.current.forEach((l) => {
+      if (!l) return
+      l.color.copy(emit)
+      l.intensity = 2.6 + Math.sin(clock.elapsedTime * 1.3) * 0.25
     })
   })
 
-  const y = -0.12
-
   return (
     <group>
-      <mesh position={[0, y, halfW - 0.1]}>
-        <boxGeometry args={[poolLength * 0.92, 0.04, 0.04]} />
-        <meshBasicMaterial ref={stripMats[0]} color="#00ccff" toneMapped={false} />
-      </mesh>
-      <mesh position={[0, y, -halfW + 0.1]}>
-        <boxGeometry args={[poolLength * 0.92, 0.04, 0.04]} />
-        <meshBasicMaterial ref={stripMats[1]} color="#00ccff" toneMapped={false} />
-      </mesh>
-      <mesh position={[halfL - 0.12, y, 0]}>
-        <boxGeometry args={[0.04, 0.04, poolWidth * 0.7]} />
-        <meshBasicMaterial ref={stripMats[2]} color="#00ccff" toneMapped={false} />
-      </mesh>
-      <mesh position={[-halfL + 0.12, y, 0]}>
-        <boxGeometry args={[0.04, 0.04, poolWidth * 0.7]} />
-        <meshBasicMaterial ref={stripMats[3]} color="#00ccff" toneMapped={false} />
-      </mesh>
-
-      <pointLight ref={lightRefs[0]} position={[-poolLength / 4, -poolDepth * 0.45, 0]} color="#00aaff" intensity={5} distance={night ? 9 : 6} decay={2} />
-      <pointLight ref={lightRefs[1]} position={[poolLength / 4, -poolDepth * 0.45, 0]} color="#00aaff" intensity={5} distance={night ? 9 : 6} decay={2} />
-      <pointLight ref={lightRefs[2]} position={[0, -poolDepth * 0.35, poolWidth / 5]} color="#66ddff" intensity={3} distance={night ? 7 : 4} decay={2} />
-      <pointLight ref={lightRefs[3]} position={[0, -poolDepth * 0.35, -poolWidth / 5]} color="#66ddff" intensity={3} distance={night ? 7 : 4} decay={2} />
-
-      {/* weiches Unterwasser-Glow-Volumen */}
-      <mesh ref={glowRefs[0]} position={[-poolLength / 5, -poolDepth * 0.5, 0]}>
-        <sphereGeometry args={[1.1, 16, 12]} />
-        <meshBasicMaterial color="#40c8ff" transparent opacity={0.1} depthWrite={false} toneMapped={false} />
-      </mesh>
-      <mesh ref={glowRefs[1]} position={[poolLength / 5, -poolDepth * 0.5, 0]}>
-        <sphereGeometry args={[1.1, 16, 12]} />
-        <meshBasicMaterial color="#40c8ff" transparent opacity={0.1} depthWrite={false} toneMapped={false} />
-      </mesh>
+      {xs.map((x, i) => (
+        <group key={`${count}-${i}`} position={[x, y, z]}>
+          <RgbwLamp
+            lensRef={(el) => {
+              lensRefs.current[i] = el
+            }}
+            lightRef={(el) => {
+              lightRefs.current[i] = el
+            }}
+          />
+        </group>
+      ))}
     </group>
   )
 }

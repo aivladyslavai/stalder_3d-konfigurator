@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 import {
   CHLOR_SYSTEM,
-  findPoolSize,
+  clampDimension,
+  formatDimsShort,
+  sizeClassFor,
   findStair,
   findPPColor,
   findSteelFinish,
@@ -18,7 +20,7 @@ import { clampInPool, snapToDeck } from '../three/placement'
 
 export { WALL_THICKNESS, visualShapeForSystem } from '../data/config'
 
-const DEFAULT_SIZE = findPoolSize('M')
+const DEFAULT_SIZE = { length: 5, width: 2.5, depth: 1.5 }
 
 function uid() {
   return `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
@@ -31,9 +33,10 @@ function ensureValidStair(type, stair) {
 }
 
 export function calcPrice(state) {
-  const { type, poolSystem, sizeId, stair, disinfection, options, placements } = state
+  const { type, poolSystem, length, width, stair, disinfection, options, placements } = state
+  const sizeId = sizeClassFor(length, width)
 
-  let total = getBasePrice(type, poolSystem, sizeId)
+  let total = getBasePrice(type, poolSystem, length, width)
   total += getFilterInfo(sizeId).price
   total += findStair(type, stair).price
 
@@ -61,46 +64,28 @@ export function formatCHF(value) {
 export function getPoolMaterial(state) {
   if (state.type === 'PP') {
     const c = findPPColor(state.ppColor)
-    return {
-      kind: 'pp',
-      color: c.color,
-      metalness: 0.04,
-      roughness: 0.38,
-      clearcoat: 0.65,
-      clearcoatRoughness: 0.22,
-      envMapIntensity: 0.95,
-    }
+    return { color: c.color, metalness: 0.0, roughness: 0.55 }
   }
   const f = findSteelFinish(state.steelFinish)
-  const polished = f.id === 'Poliert'
-  return {
-    kind: 'steel',
-    finish: f.id,
-    color: f.color,
-    metalness: polished ? 1 : 0.94,
-    roughness: polished ? 0.06 : 0.34,
-    clearcoat: polished ? 1 : 0.2,
-    clearcoatRoughness: polished ? 0.04 : 0.45,
-    envMapIntensity: polished ? 2.4 : 1.45,
-  }
+  return { color: f.color, metalness: f.metalness, roughness: f.roughness }
 }
 
 export function listSelectedLines(state) {
   const lines = []
-  const size = findPoolSize(state.sizeId)
+  const sizeId = sizeClassFor(state.length, state.width)
   lines.push({
     id: 'base',
-    label: `${state.type === 'PP' ? 'PP' : 'Chromstahl'} ${state.poolSystem === 'Ueberlauf' ? 'Überlauf' : 'Skimmer'} ${size.label}`,
-    price: getBasePrice(state.type, state.poolSystem, state.sizeId),
+    label: `${state.type === 'PP' ? 'PP' : 'Chromstahl'} ${state.poolSystem === 'Ueberlauf' ? 'Überlauf' : 'Skimmer'} ${formatDimsShort(state.length, state.width, state.depth)}`,
+    price: getBasePrice(state.type, state.poolSystem, state.length, state.width),
   })
-  lines.push({ id: 'filter', label: getFilterInfo(state.sizeId).label, price: getFilterInfo(state.sizeId).price })
+  lines.push({ id: 'filter', label: getFilterInfo(sizeId).label, price: getFilterInfo(sizeId).price })
 
   const stair = findStair(state.type, state.stair)
   if (stair.price > 0) lines.push({ id: 'stair', label: stair.label, price: stair.price })
 
   if (state.disinfection === 'chlor') lines.push({ id: 'chlor', label: CHLOR_SYSTEM.label, price: CHLOR_SYSTEM.price })
   if (state.disinfection === 'salt') {
-    const salt = getSaltInfo(state.sizeId)
+    const salt = getSaltInfo(sizeId)
     lines.push({ id: 'salt', label: salt.label, price: salt.price })
   }
   if (state.options.led) {
@@ -108,10 +93,10 @@ export function listSelectedLines(state) {
     lines.push({ id: 'led', label: led.label, price: led.price })
   }
   if (state.options.rolladen) {
-    lines.push({ id: 'rolladen', label: 'Rollladen Polycarbonat', price: getRolladenPrice(state.sizeId) })
+    lines.push({ id: 'rolladen', label: 'Rollladen Polycarbonat', price: getRolladenPrice(sizeId) })
   }
   if (state.placements.some((p) => p.catalogId === 'heatpump')) {
-    const hp = getHeatPumpInfo(state.sizeId)
+    const hp = getHeatPumpInfo(sizeId)
     lines.push({ id: 'heatpump', label: `Wärmepumpe ${hp.label}`, price: hp.price })
   }
 
@@ -136,11 +121,9 @@ export function listSelectedLines(state) {
 export const usePoolConfig = create((set, get) => ({
   showLeadForm: false,
   topView: false,
-  camDist: 14,
 
   type: 'Chromstahl',
   poolSystem: 'Skimmer',
-  sizeId: 'M',
   length: DEFAULT_SIZE.length,
   width: DEFAULT_SIZE.width,
   depth: DEFAULT_SIZE.depth,
@@ -167,8 +150,6 @@ export const usePoolConfig = create((set, get) => ({
   openLeadForm: () => set({ showLeadForm: true }),
   closeLeadForm: () => set({ showLeadForm: false }),
   setTopView: (topView) => set({ topView }),
-  zoomIn: () => set((s) => ({ camDist: Math.max(8, s.camDist - 2), topView: false })),
-  zoomOut: () => set((s) => ({ camDist: Math.min(28, s.camDist + 2), topView: false })),
 
   setType: (type) => {
     const stair = ensureValidStair(type, get().stair)
@@ -179,23 +160,16 @@ export const usePoolConfig = create((set, get) => ({
     set({ poolSystem })
     get().recompute()
   },
-  setSizeId: (sizeId) => {
-    const size = findPoolSize(sizeId)
-    const placements = get().placements.map((p) => {
-      if (p.place === 'deck') {
-        const s = snapToDeck(p.x, p.z, size.length, size.width)
-        return { ...p, ...s }
-      }
-      const c = clampInPool(p.x, p.z, size.length, size.width)
-      return { ...p, ...c }
+  setDimension: (key, rawValue) => {
+    const value = clampDimension(key, rawValue)
+    const cur = get()
+    if (cur[key] === value) return
+    const dims = { length: cur.length, width: cur.width, depth: cur.depth, [key]: value }
+    const placements = cur.placements.map((p) => {
+      if (p.place === 'deck') return { ...p, ...snapToDeck(p.x, p.z, dims.length, dims.width) }
+      return { ...p, ...clampInPool(p.x, p.z, dims.length, dims.width) }
     })
-    set({
-      sizeId,
-      length: size.length,
-      width: size.width,
-      depth: size.depth,
-      placements,
-    })
+    set({ ...dims, placements })
     get().recompute()
   },
   setStair: (stair) => {
@@ -212,8 +186,6 @@ export const usePoolConfig = create((set, get) => ({
         kind: 'stair',
         place: item?.visual === 'Ecktreppe' ? 'corner' : 'wall',
         label: item?.label || 'Treppe',
-        visual: item?.visual || 'Ecktreppe',
-        steps: item?.steps || 4,
       },
     })
     get().recompute()
@@ -242,8 +214,8 @@ export const usePoolConfig = create((set, get) => ({
         kind: item.kind,
         place: item.place,
         label: item.label,
-        exclusive: item.exclusive,
         variant: item.variant || null,
+        exclusive: item.exclusive,
       },
     })
   },

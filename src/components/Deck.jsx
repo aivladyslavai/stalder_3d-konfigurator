@@ -6,35 +6,36 @@ import {
   makeWoodTexture,
   makeConcreteTexture,
 } from '../three/textures'
-import { cornerRadiusFor, roundedRectShape } from '../three/footprint'
+import { cornerRadiusFor, roundedRectShape, overflowInsetFor } from '../three/footprint'
 import { findDeckMaterial } from '../data/config'
 
-const DECK_THICKNESS = 0.12
-const MARGIN_X = 16 // Terrassenüberstand seitlich (m)
-const MARGIN_Z = 13
+const DECK_THICKNESS = 0.14
 const PAVER_SIZE = 1.2
+const WOOD_TILE_L = 4.0 // Kachellänge in Dielenrichtung (m)
+const WOOD_TILE_W = 1.6 // 10 Dielen à 16 cm (m)
 
 /**
- * Durchgehende Boden-Platte (Terrasse / Raumboden) mit rechteckiger bzw.
- * abgerundeter Aussparung für das Becken. Der Belag (Naturstein, Holz, Beton)
- * ist wählbar.
+ * Terrassen-Podest rund um das Becken (bzw. Raumboden im Innenbereich) mit
+ * Aussparung für den Pool. Der Belag ist wählbar.
  *
- * Props: { length, width, shape, deck }
+ * Props: { length, width, shape, deck, margin }
  */
-function Deck({ length, width, shape: poolShape, deck }) {
+function Deck({ length, width, shape: poolShape, deck, margin = 3.6 }) {
   const r = cornerRadiusFor(poolShape)
   const mat = findDeckMaterial(deck)
 
   const geometry = useMemo(() => {
-    const outerL = length + MARGIN_X * 2
-    const outerW = width + MARGIN_Z * 2
+    const outerL = length + margin * 2
+    const outerW = width + margin * 2
     const shape = new THREE.Shape()
     shape.moveTo(-outerL / 2, -outerW / 2)
     shape.lineTo(outerL / 2, -outerW / 2)
     shape.lineTo(outerL / 2, outerW / 2)
     shape.lineTo(-outerL / 2, outerW / 2)
     shape.lineTo(-outerL / 2, -outerW / 2)
-    shape.holes.push(roundedRectShape(length, width, r))
+    // Überlaufbecken brauchen rundum Platz für die Rinne
+    const inset = overflowInsetFor(poolShape)
+    shape.holes.push(roundedRectShape(length + inset, width + inset, r + inset / 2))
 
     const geo = new THREE.ExtrudeGeometry(shape, { depth: DECK_THICKNESS, bevelEnabled: false })
     geo.rotateX(-Math.PI / 2)
@@ -45,14 +46,14 @@ function Deck({ length, width, shape: poolShape, deck }) {
     for (let i = 0; i < pos.count; i++) uv.push(pos.getX(i), pos.getZ(i))
     geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2))
     return geo
-  }, [length, width, r])
+  }, [length, width, r, margin, poolShape])
 
-  // Belag-Textur je nach Art
   const colorMap = useMemo(() => {
     let tex
     if (mat.kind === 'wood') {
-      tex = makeWoodTexture(512)
-      tex.repeat.set(0.32, 1.0)
+      // Kachel = 4 m lang, 10 Dielen à 16 cm
+      tex = makeWoodTexture(1024, 10)
+      tex.repeat.set(1 / WOOD_TILE_L, 1 / WOOD_TILE_W)
     } else if (mat.kind === 'concrete') {
       tex = makeConcreteTexture(512)
       tex.repeat.set(0.22, 0.22)
@@ -63,17 +64,20 @@ function Deck({ length, width, shape: poolShape, deck }) {
     return tex
   }, [mat.kind])
 
+  // Holz erhält seine Struktur aus der Farbtextur – eine zusätzliche Normalmap
+  // erzeugt hier nur grossflächige Streifen.
   const normalMap = useMemo(() => {
+    if (mat.kind === 'wood') return null
     const tex = makeStoneNormalTexture(256, 20)
     tex.repeat.set(0.4, 0.4)
     return tex
-  }, [])
+  }, [mat.kind])
 
   useEffect(() => {
     return () => {
       geometry.dispose()
       colorMap.dispose()
-      normalMap.dispose()
+      normalMap?.dispose()
     }
   }, [geometry, colorMap, normalMap])
 
@@ -84,7 +88,7 @@ function Deck({ length, width, shape: poolShape, deck }) {
         color={mat.color}
         roughness={mat.roughness}
         metalness={0}
-        normalMap={mat.kind === 'wood' ? null : normalMap}
+        normalMap={normalMap}
         normalScale={[0.35, 0.35]}
         envMapIntensity={0.5}
       />

@@ -4,6 +4,13 @@ import * as THREE from 'three'
 import { WALL_THICKNESS } from '../data/config'
 import { roundedRectShape, cornerRadiusFor } from '../three/footprint'
 
+/**
+ * Foto-realistisches, animiertes Kaustik-Lichtnetz auf dem Beckenboden –
+ * vollständig prozedural per GLSL-Shader (gleichmässige Verteilung, weiches
+ * Schimmern). Wird additiv über den Boden gelegt.
+ *
+ * Props: { length, width, depth, shape, led }
+ */
 const vertexShader = /* glsl */ `
   varying vec2 vUv;
   void main() {
@@ -12,6 +19,8 @@ const vertexShader = /* glsl */ `
   }
 `
 
+// Caustic-Funktion nach dem bekannten "TDM Caustic"-Verfahren (Shadertoy MdlXz8),
+// hier zweifach überlagert für mehr Tiefe.
 const fragmentShader = /* glsl */ `
   precision highp float;
   varying vec2 vUv;
@@ -35,21 +44,27 @@ const fragmentShader = /* glsl */ `
     }
     c /= float(ITER);
     c = 1.17 - pow(c, 1.4);
-    return pow(abs(c), 8.0);
+    return pow(abs(c), 6.5);
   }
 
   void main() {
-    float t = uTime * 0.55 + 23.0;
-    float a = caustic(vUv * uScale, t);
-    float b = caustic(vUv * uScale * 1.7 + 4.0, t * 0.8);
-    float v = clamp(a * 0.75 + b * 0.55, 0.0, 1.0);
-    vec2 e = smoothstep(0.0, 0.1, vUv) * smoothstep(0.0, 0.1, 1.0 - vUv);
+    float t = uTime * 0.38 + 23.0;
+    vec2 warp = 0.035 * vec2(
+      sin(vUv.y * 9.0 + uTime * 0.21),
+      cos(vUv.x * 8.0 - uTime * 0.17)
+    );
+    float a = caustic(vUv * uScale + warp, t);
+    float b = caustic(vUv * uScale * 1.85 + 3.7 + warp.yx, t * 0.73);
+    float c = caustic(vUv * uScale * 3.4 + vec2(5.1, -2.4), t * 1.11);
+    float v = clamp(a * 0.55 + b * 0.38 + c * 0.22, 0.0, 1.0);
+    v = pow(v, 1.15);
+    vec2 e = smoothstep(0.0, 0.14, vUv) * smoothstep(0.0, 0.14, 1.0 - vUv);
     v *= e.x * e.y;
     gl_FragColor = vec4(uColor * v, v * uOpacity);
   }
 `
 
-function Caustics({ length, width, depth, shape, led, night = false }) {
+function Caustics({ length, width, depth, shape, led }) {
   const matRef = useRef()
   const t = WALL_THICKNESS
   const r = cornerRadiusFor(shape)
@@ -58,6 +73,7 @@ function Caustics({ length, width, depth, shape, led, night = false }) {
     const shp = roundedRectShape(length - t * 2, width - t * 2, Math.max(0, r - t))
     const g = new THREE.ShapeGeometry(shp)
     g.rotateX(-Math.PI / 2)
+    // UVs auf 0..1 normieren (ShapeGeometry liefert Meter-Koordinaten)
     g.computeBoundingBox()
     const bb = g.boundingBox
     const sx = bb.max.x - bb.min.x
@@ -74,19 +90,17 @@ function Caustics({ length, width, depth, shape, led, night = false }) {
   const uniforms = useMemo(
     () => ({
       uTime: { value: 0 },
-      uColor: { value: new THREE.Color('#bfe9ff') },
-      uScale: { value: 2 },
-      uOpacity: { value: 0.95 },
+      uColor: { value: new THREE.Color(led ? '#cdf2ff' : '#bfe9ff') },
+      uScale: { value: Math.max(1.5, Math.min(length, width) * 0.9) },
+      uOpacity: { value: 0.62 },
     }),
-    [],
+    [], // Werte werden unten aktualisiert
   )
 
   useEffect(() => {
-    const color = led ? (night ? '#7ef0ff' : '#cdf2ff') : night ? '#3d7ea0' : '#c8efff'
-    uniforms.uColor.value.set(color)
-    uniforms.uScale.value = Math.max(1.6, Math.min(length, width) * 1.05)
-    uniforms.uOpacity.value = night ? (led ? 1.15 : 0.35) : led ? 1.05 : 0.95
-  }, [led, night, length, width, uniforms])
+    uniforms.uColor.value.set(led ? '#cdf2ff' : '#bfe9ff')
+    uniforms.uScale.value = Math.max(1.5, Math.min(length, width) * 0.9)
+  }, [led, length, width, uniforms])
 
   useEffect(() => () => geometry.dispose(), [geometry])
 

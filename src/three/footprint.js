@@ -17,6 +17,15 @@ export function waterLevelFor(shape) {
   }
 }
 
+// Überlaufrinne: Rostbreite und Fuge zum Beckenrand (m)
+export const GRATE_WIDTH = 0.2
+export const GRATE_GAP = 0.02
+
+/** Zusatzmass, das Terrasse und Rasen rund ums Becken freilassen müssen. */
+export function overflowInsetFor(shape) {
+  return shape === 'Infinity' ? 2 * (GRATE_WIDTH + GRATE_GAP) : 0
+}
+
 /**
  * Rechteck mit (optional) abgerundeten Ecken in der XY-Ebene.
  * x = Längsachse, y = Querachse.

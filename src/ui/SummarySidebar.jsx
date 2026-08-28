@@ -1,40 +1,29 @@
 import React from 'react'
-import { TIME_OPTIONS } from '../data/config'
+import { SCENE_OPTIONS, TIME_OPTIONS, DECK_MATERIALS } from '../data/config'
 import { usePoolConfig, formatCHF, listSelectedLines } from '../hooks/usePoolConfig'
 
-function PairPills({ left, right, value, onChange }) {
+function Pill({ options, value, onChange }) {
   return (
     <div className="flex overflow-hidden rounded-full border border-gray-200 bg-white">
-      {[left, right].map((o) => {
-        const active = value === o.id
-        return (
-          <button
-            key={o.id}
-            type="button"
-            onClick={() => onChange(o.id)}
-            className={`relative flex flex-1 items-center justify-center gap-1.5 px-2 py-2 text-[12px] font-medium ${
-              active ? 'text-[#1a2b48]' : 'text-gray-400'
-            }`}
-          >
-            {active && (
-              <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-[#3b82f6]" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <path d="M3.5 8.2 6.4 11 12.5 4.8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
-            {o.label}
-          </button>
-        )
-      })}
+      {options.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          onClick={() => onChange(o.id)}
+          className={`flex-1 px-2 py-1.5 text-[11px] font-semibold ${
+            value === o.id ? 'bg-[#002B6F] text-white' : 'text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
     </div>
   )
 }
 
-const PLACEABLE_IDS = new Set(['massageduese', 'schwall', 'liege', 'bank', 'countercurrent', 'robotX60', 'robotX80', 'heatpump'])
-
 export default function SummarySidebar() {
   const s = usePoolConfig()
   const lines = listSelectedLines(s)
-  const extras = lines.filter((l) => l.id !== 'base' && l.id !== 'filter')
   const openLeadForm = usePoolConfig((st) => st.openLeadForm)
   const removePlacementsByCatalog = usePoolConfig((st) => st.removePlacementsByCatalog)
   const setStair = usePoolConfig((st) => st.setStair)
@@ -49,63 +38,65 @@ export default function SummarySidebar() {
     else if (id === 'heatpump' || PLACEABLE_IDS.has(id)) removePlacementsByCatalog(id)
   }
 
-  const deckKind = s.deck === 'wood' ? 'wood' : 'stone'
-
   return (
-    <aside className="flex h-full min-h-0 w-full flex-col bg-white lg:w-[280px] lg:flex-none">
-      <div className="space-y-2.5 px-5 pt-5">
-        <PairPills left={TIME_OPTIONS[0]} right={TIME_OPTIONS[1]} value={s.timeOfDay} onChange={s.setTimeOfDay} />
-        <PairPills
-          left={{ id: 'outdoor', label: 'Aussen' }}
-          right={{ id: 'indoor', label: 'Innen' }}
+    <aside className="flex h-full min-h-0 w-full flex-col border-l border-gray-100 bg-white lg:w-[280px] lg:flex-none">
+      <div className="space-y-2 border-b border-gray-100 px-4 py-3">
+        <Pill options={TIME_OPTIONS} value={s.timeOfDay} onChange={s.setTimeOfDay} />
+        <Pill
+          options={SCENE_OPTIONS.map((o) => ({ id: o.id, label: o.id === 'outdoor' ? 'Aussen' : 'Innen' }))}
           value={s.scene}
           onChange={s.setScene}
         />
-        <PairPills
-          left={{ id: 'wood', label: 'Holzboden' }}
-          right={{ id: 'stone', label: 'Steinboden' }}
-          value={deckKind}
-          onChange={(kind) => s.setDeck(kind === 'wood' ? 'wood' : 'stone-light')}
-        />
+        <div className="grid grid-cols-5 gap-1">
+          {DECK_MATERIALS.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              title={m.label}
+              onClick={() => s.setDeck(m.id)}
+              className={`h-7 rounded border-2 ${s.deck === m.id ? 'border-[#32B4E6]' : 'border-gray-200'}`}
+              style={{ background: m.id === 'wood' ? '#b6854f' : m.color }}
+            />
+          ))}
+        </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
-        <div className="mb-3 text-[12px] font-bold uppercase tracking-[0.16em] text-[#1a2b48]">Ausgewählt</div>
-        {extras.length === 0 ? (
-          <p className="text-xs text-gray-400">Noch keine Extras gewählt.</p>
-        ) : (
-          <ul className="space-y-2">
-            {extras.map((line) => (
-              <li key={line.id} className="flex items-center justify-between gap-2 text-[13px] text-[#1a2b48]">
-                <span>{line.label}</span>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+        <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-gray-400">Ausgewählt</div>
+        <ul className="space-y-1.5">
+          {lines.map((line) => (
+            <li key={line.id} className="flex items-start justify-between gap-2 text-xs text-gray-700">
+              <span>{line.label}</span>
+              {line.id !== 'base' && line.id !== 'filter' && (
                 <button
                   type="button"
-                  className="flex h-5 w-5 items-center justify-center rounded-full text-[#1a2b48] hover:bg-gray-100"
+                  className="shrink-0 text-[10px] uppercase tracking-wide text-gray-400 hover:text-red-500"
                   onClick={() => removeLine(line.id)}
-                  aria-label="Entfernen"
                 >
                   ×
                 </button>
-              </li>
-            ))}
-          </ul>
-        )}
+              )}
+            </li>
+          ))}
+        </ul>
       </div>
 
-      <div className="px-5 pb-6 pt-2">
-        <div className="text-[12px] text-gray-500">geschätzte Kosten exkl. MwSt.</div>
-        <div className="mt-1 text-[28px] font-extrabold leading-none tracking-tight text-[#1a2b48]">{formatCHF(s.price)}</div>
+      <div className="border-t border-gray-100 px-4 py-4">
+        <div className="text-[11px] uppercase tracking-wide text-gray-500">Geschätzte Kosten exkl. MwSt.</div>
+        <div className="mt-1 text-3xl font-extrabold text-gray-900">{formatCHF(s.price)}</div>
         <button
           type="button"
           onClick={openLeadForm}
-          className="mt-5 w-full rounded-xl bg-[#1a2b48] py-3.5 text-[15px] font-semibold text-white hover:bg-[#142238]"
+          className="mt-4 w-full rounded-md bg-[#002B6F] py-3 text-sm font-semibold text-white hover:bg-[#00224f]"
         >
           Offerte anfordern
         </button>
         <p className="mt-3 text-[10px] leading-snug text-gray-400">
-          Die angegebenen Preise gelten exkl. Montage und Transport. Wellness-Elemente als Richtpreise.
+          Preise gemäss STALDER-Preisliste, exkl. Montage und Transport. Wellness-Elemente als Richtpreise.
         </p>
       </div>
     </aside>
   )
 }
+
+const PLACEABLE_IDS = new Set(['massageduese', 'schwall', 'liege', 'bank', 'countercurrent', 'robotX60', 'robotX80', 'heatpump'])

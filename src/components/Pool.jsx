@@ -1,37 +1,106 @@
 import React, { useMemo, useEffect } from 'react'
 import * as THREE from 'three'
 import { WALL_THICKNESS } from '../data/config'
+import { makePoolPanelTexture, makeGrateTexture } from '../three/textures'
 import {
-  makeMosaicTexture,
-  makeBrushedNormalTexture,
-  makeBrushedRoughnessTexture,
-  makePPNoiseTexture,
-} from '../three/textures'
-import { roundedRectShape, cornerRadiusFor } from '../three/footprint'
+  roundedRectShape,
+  cornerRadiusFor,
+  GRATE_WIDTH,
+  GRATE_GAP,
+} from '../three/footprint'
+
+/**
+ * Becken (Pool) – formabhängig prozedural:
+ *  - Wände + Boden folgen dem Grundriss (eckig oder abgerundet = Individuelle Form)
+ *  - umlaufende Edelstahl-Randeinfassung (bei Infinity vorne offen = Überlaufkante)
+ *  - Skimmer-Deckel bei Skimmer-Pool
+ * Oberkante bei y = 0, Becken nach unten.
+ *
+ * Props: { length, width, depth, material, shape }
+ */
+const PANEL_SIZE = 1.6 // Kantenlänge eines Auskleidungspaneels in Metern
+
+/** Überlaufrinne mit Edelstahlrost rund um das Becken. */
+function OverflowGrate({ length, width }) {
+  const grate = useMemo(() => makeGrateTexture(256, 16), [])
+  useEffect(() => () => grate.dispose(), [grate])
+
+  const g = GRATE_WIDTH
+  const gap = GRATE_GAP
+  const outerL = length + 2 * (g + gap)
+  const innerW = width + 2 * gap
+  const zEdge = width / 2 + gap + g / 2
+  const xEdge = length / 2 + gap + g / 2
+
+  // 16 Lamellen je Kachel, Kachel = 0.7 m ⇒ rund 4.4 cm Teilung
+  const long = useMemo(() => {
+    const m = grate.clone()
+    m.needsUpdate = true
+    m.repeat.set(outerL / 0.7, 1)
+    return m
+  }, [grate, outerL])
+  const short = useMemo(() => {
+    const m = grate.clone()
+    m.needsUpdate = true
+    m.repeat.set(innerW / 0.7, 1)
+    return m
+  }, [grate, innerW])
+
+  // Rostoberkante bündig mit der Terrasse (y = 0)
+  const y = -0.015
+  const bars = [
+    { key: 'n', pos: [0, y, -zEdge], rot: 0, size: [outerL, 0.03, g], map: long },
+    { key: 's', pos: [0, y, zEdge], rot: 0, size: [outerL, 0.03, g], map: long },
+    { key: 'w', pos: [-xEdge, y, 0], rot: Math.PI / 2, size: [innerW, 0.03, g], map: short },
+    { key: 'e', pos: [xEdge, y, 0], rot: Math.PI / 2, size: [innerW, 0.03, g], map: short },
+  ]
+
+  return (
+    <group>
+      {bars.map((b) => (
+        <group key={b.key} position={b.pos} rotation={[0, b.rot, 0]}>
+          {/* dunkle Rinne unter dem Rost */}
+          <mesh position={[0, -0.12, 0]}>
+            <boxGeometry args={[b.size[0], 0.2, g]} />
+            <meshStandardMaterial color="#1e242a" roughness={0.95} />
+          </mesh>
+          <mesh receiveShadow>
+            <boxGeometry args={b.size} />
+            {/* wenig metalness: sonst kommt die Farbe fast nur aus der
+                Reflexion und der Rost wirkt dunkel */}
+            <meshStandardMaterial map={b.map} metalness={0.4} roughness={0.42} envMapIntensity={1} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  )
+}
 
 function Pool({ length, width, depth, material, shape }) {
   const t = WALL_THICKNESS
   const r = cornerRadiusFor(shape)
   const isInfinity = shape === 'Infinity'
   const isSkimmer = shape === 'Skimmer'
-  const isSteel = material.kind === 'steel'
-  const isBrushed = isSteel && material.finish !== 'Poliert'
   const halfL = length / 2
   const halfW = width / 2
 
+  // --- Geometrien ---
   const geo = useMemo(() => {
+    // Wände als extrudierter Ring (Aussenkontur mit Innen-Loch)
     const outer = roundedRectShape(length, width, r)
     const innerHole = roundedRectShape(length - 2 * t, width - 2 * t, Math.max(0, r - t))
     outer.holes.push(innerHole)
     const walls = new THREE.ExtrudeGeometry(outer, { depth, bevelEnabled: false, steps: 1 })
     walls.rotateX(-Math.PI / 2)
-    walls.translate(0, -depth, 0)
+    walls.translate(0, -depth, 0) // Oberkante auf y = 0
 
+    // Boden
     const floorShape = roundedRectShape(length - 2 * t, width - 2 * t, Math.max(0, r - t))
     const floor = new THREE.ShapeGeometry(floorShape)
     floor.rotateX(-Math.PI / 2)
     floor.translate(0, -depth + 0.02, 0)
 
+    // Randeinfassung als Ring (nur wenn nicht Infinity)
     let rim = null
     if (!isInfinity) {
       const rimOuter = roundedRectShape(length + 0.24, width + 0.24, r + 0.12)
@@ -43,138 +112,93 @@ function Pool({ length, width, depth, material, shape }) {
     return { walls, floor, rim }
   }, [length, width, depth, r, t, isInfinity])
 
-  const mosaic = useMemo(() => makeMosaicTexture(512, 14, material.color), [material.color])
+  // --- Auskleidung: grossformatige Paneele statt Mosaik ---
+  const panelKind = material.metalness > 0.4 ? 'steel' : 'liner'
+  const panel = useMemo(
+    () => makePoolPanelTexture(512, material.color, panelKind),
+    [material.color, panelKind],
+  )
   const floorMap = useMemo(() => {
-    const m = mosaic.clone()
+    const m = panel.clone()
     m.needsUpdate = true
-    m.repeat.set(1, 1)
+    m.repeat.set(1 / PANEL_SIZE, 1 / PANEL_SIZE)
     return m
-  }, [mosaic])
+  }, [panel])
   const wallMap = useMemo(() => {
-    const m = mosaic.clone()
+    const m = panel.clone()
     m.needsUpdate = true
-    m.repeat.set(0.6, 0.6)
+    m.repeat.set(1 / PANEL_SIZE, 1 / PANEL_SIZE)
     return m
-  }, [mosaic])
-
-  const brushedNormal = useMemo(() => {
-    if (!isBrushed) return null
-    const tex = makeBrushedNormalTexture(512, 1.6)
-    tex.repeat.set(4, 1.2)
-    return tex
-  }, [isBrushed])
-
-  const brushedRough = useMemo(() => {
-    if (!isBrushed) return null
-    const tex = makeBrushedRoughnessTexture(512)
-    tex.repeat.set(4, 1.2)
-    return tex
-  }, [isBrushed])
-
-  const ppMap = useMemo(() => {
-    if (material.kind !== 'pp') return null
-    const tex = makePPNoiseTexture(256, material.color)
-    tex.repeat.set(3, 3)
-    return tex
-  }, [material.kind, material.color])
+  }, [panel])
 
   useEffect(() => {
     return () => {
       geo.walls.dispose()
       geo.floor.dispose()
       geo.rim && geo.rim.dispose()
-      mosaic.dispose()
+      panel.dispose()
       floorMap.dispose()
       wallMap.dispose()
-      brushedNormal?.dispose()
-      brushedRough?.dispose()
-      ppMap?.dispose()
     }
-  }, [geo, mosaic, floorMap, wallMap, brushedNormal, brushedRough, ppMap])
+  }, [geo, panel, floorMap, wallMap])
 
-  const inner = isSteel
+  const steelLook = panelKind === 'steel'
+  const inner = steelLook
     ? {
-        color: '#ffffff',
-        map: wallMap,
-        metalness: material.metalness,
         roughness: material.roughness,
-        clearcoat: material.clearcoat,
-        clearcoatRoughness: material.clearcoatRoughness,
-        envMapIntensity: material.envMapIntensity,
-        normalMap: brushedNormal || undefined,
-        normalScale: brushedNormal ? new THREE.Vector2(0.55, 0.55) : undefined,
-        roughnessMap: brushedRough || undefined,
+        metalness: Math.max(0.9, material.metalness),
+        envMapIntensity: 2.25,
+        clearcoat: material.roughness < 0.12 ? 0.7 : 0.28,
+        clearcoatRoughness: material.roughness < 0.12 ? 0.06 : 0.22,
       }
     : {
-        color: '#ffffff',
-        map: ppMap || wallMap,
+        roughness: Math.max(0.25, material.roughness),
         metalness: material.metalness,
-        roughness: material.roughness,
-        clearcoat: material.clearcoat,
-        clearcoatRoughness: material.clearcoatRoughness,
-        envMapIntensity: material.envMapIntensity,
+        envMapIntensity: 0.75,
       }
-
-  const rimMat = {
-    color: isSteel ? material.color : '#c9ced1',
-    metalness: isSteel ? material.metalness : 0.9,
-    roughness: isSteel ? material.roughness : 0.22,
-    clearcoat: isSteel ? material.clearcoat : 0.4,
-    clearcoatRoughness: isSteel ? material.clearcoatRoughness : 0.2,
-    envMapIntensity: isSteel ? material.envMapIntensity : 1.4,
-    normalMap: brushedNormal || undefined,
-    normalScale: brushedNormal ? new THREE.Vector2(0.7, 0.7) : undefined,
-    roughnessMap: brushedRough || undefined,
+  const steel = {
+    color: '#eef3f6',
+    metalness: 0.96,
+    roughness: 0.14,
+    envMapIntensity: 2.0,
+    clearcoat: 0.4,
+    clearcoatRoughness: 0.18,
   }
 
   return (
     <group>
+      {/* Wände */}
       <mesh geometry={geo.walls} receiveShadow castShadow>
-        <meshPhysicalMaterial {...inner} side={THREE.DoubleSide} />
+        {steelLook ? (
+          <meshPhysicalMaterial {...inner} map={wallMap} color="#ffffff" side={THREE.DoubleSide} />
+        ) : (
+          <meshStandardMaterial {...inner} map={wallMap} color="#ffffff" side={THREE.DoubleSide} />
+        )}
       </mesh>
+      {/* Boden */}
       <mesh geometry={geo.floor} receiveShadow>
-        <meshPhysicalMaterial
-          {...inner}
-          map={isSteel ? floorMap : ppMap || floorMap}
-          side={THREE.DoubleSide}
-        />
+        {steelLook ? (
+          <meshPhysicalMaterial {...inner} map={floorMap} color="#ffffff" side={THREE.DoubleSide} />
+        ) : (
+          <meshStandardMaterial {...inner} map={floorMap} color="#ffffff" side={THREE.DoubleSide} />
+        )}
       </mesh>
 
+      {/* Randeinfassung */}
       {geo.rim && (
         <mesh geometry={geo.rim} castShadow receiveShadow>
-          <meshPhysicalMaterial {...rimMat} />
+          <meshPhysicalMaterial {...steel} />
         </mesh>
       )}
 
-      {isInfinity && (
-        <group>
-          <mesh position={[0, -0.01, -halfW - 0.06]} castShadow receiveShadow>
-            <boxGeometry args={[length + 0.24, 0.06, 0.14]} />
-            <meshPhysicalMaterial {...rimMat} />
-          </mesh>
-          <mesh position={[-halfL - 0.06, -0.01, 0]} castShadow receiveShadow>
-            <boxGeometry args={[0.14, 0.06, width + 0.24]} />
-            <meshPhysicalMaterial {...rimMat} />
-          </mesh>
-          <mesh position={[halfL + 0.06, -0.01, 0]} castShadow receiveShadow>
-            <boxGeometry args={[0.14, 0.06, width + 0.24]} />
-            <meshPhysicalMaterial {...rimMat} />
-          </mesh>
-          <mesh position={[0, -0.18, halfW + 0.011]}>
-            <planeGeometry args={[length, 0.34]} />
-            <meshStandardMaterial color="#4eb8d8" transparent opacity={0.45} roughness={0.08} metalness={0.15} side={THREE.DoubleSide} />
-          </mesh>
-          <mesh position={[0, -0.42, halfW + 0.45]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[length + 0.2, 0.8]} />
-            <meshPhysicalMaterial color="#2a8fb8" roughness={0.12} metalness={0.25} clearcoat={0.5} />
-          </mesh>
-        </group>
-      )}
+      {/* Überlauf: umlaufende Rinne mit Edelstahlrost */}
+      {isInfinity && <OverflowGrate length={length} width={width} />}
 
+      {/* Skimmer-Deckel auf dem hinteren Rand */}
       {isSkimmer && (
-        <mesh position={[halfL * 0.4, 0.002, -halfW - 0.06]} castShadow>
+        <mesh position={[halfL * 0.4, 0.001, -halfW - 0.06]} castShadow>
           <boxGeometry args={[0.3, 0.03, 0.22]} />
-          <meshPhysicalMaterial color="#dfe3e6" roughness={0.35} metalness={0.55} clearcoat={0.4} />
+          <meshPhysicalMaterial color="#e8eef2" roughness={0.16} metalness={0.94} envMapIntensity={1.9} />
         </mesh>
       )}
     </group>

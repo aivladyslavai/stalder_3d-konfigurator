@@ -36,7 +36,15 @@ export const POOL_SYSTEMS = [
   },
 ]
 
-// --- Schritt 3: Feste Beckengrössen ---
+// --- Schritt 3: Beckengrössen ---
+// Die Katalogmasse bleiben die Preis-Stützstellen; zwischen ihnen wird frei
+// über die Wasserfläche interpoliert (Schieberegler).
+export const SIZE_RANGE = {
+  length: { min: 4, max: 12, step: 0.1, label: 'Länge' },
+  width: { min: 2, max: 4.5, step: 0.1, label: 'Breite' },
+  depth: { min: 1.2, max: 2.0, step: 0.05, label: 'Tiefe' },
+}
+
 export const POOL_SIZES = [
   { id: 'S', label: 'S', length: 4, width: 2, depth: 1.5, dimsLabel: '4000 × 2000 × 1500 mm' },
   { id: 'M', label: 'M', length: 5, width: 2.5, depth: 1.5, dimsLabel: '5000 × 2500 × 1500 mm' },
@@ -77,18 +85,18 @@ export const NO_STAIR = { id: 'Keine', label: 'Keine Treppe', price: 0, visual: 
 // --- Schritt 5: Ausstattung (Preise teils grössen-/materialabhängig) ---
 export const CHLOR_SYSTEM = {
   id: 'chlor',
-  label: 'Chlor ASEKO Aqua HOME NET redox',
+  label: 'Chlor-Desinfektion',
   desc: 'Automatische Chlor-Desinfektion mit Redox-Steuerung.',
   price: 5898,
 }
 
 export const SALT_BY_SIZE = {
-  S: { label: 'Salz MPP10', price: 4400 },
-  M: { label: 'Salz MPP16', price: 5032 },
-  L: { label: 'Salz MPP24', price: 5832 },
-  XL: { label: 'Salz MPP24', price: 5832 },
-  XXL: { label: 'Salz MPP36', price: 7192 },
-  Family: { label: 'Salz MPP36', price: 7192 },
+  S: { label: 'Salz-Elektrolyse', price: 4400 },
+  M: { label: 'Salz-Elektrolyse', price: 5032 },
+  L: { label: 'Salz-Elektrolyse', price: 5832 },
+  XL: { label: 'Salz-Elektrolyse', price: 5832 },
+  XXL: { label: 'Salz-Elektrolyse', price: 7192 },
+  Family: { label: 'Salz-Elektrolyse', price: 7192 },
 }
 
 export const FILTER_BY_SIZE = {
@@ -119,27 +127,27 @@ export const ROLLADEN_BY_SIZE = {
 }
 
 export const LED_BY_TYPE = {
-  Chromstahl: { label: '1 Lampe RGBW', price: 3402 },
-  PP: { label: '1 Lampe RGBW', price: 1000 },
+  Chromstahl: { label: 'Lampe RGBW', price: 3402 },
+  PP: { label: 'Lampe RGBW', price: 1000 },
 }
 
 export const OPTIONAL_EQUIPMENT = [
   {
     id: 'countercurrent',
-    label: 'Gegenstromanlage H240',
+    label: 'Gegenstromanlage',
     desc: 'iGarden InverJet Gegenstromanlage 240 m³.',
     price: 8500,
   },
   {
     id: 'robotX60',
-    label: 'Poolroboter X60 InverX',
+    label: 'Poolroboter',
     desc: 'Automatischer Bodenreiniger.',
     price: 820,
     group: 'robot',
   },
   {
     id: 'robotX80',
-    label: 'Poolroboter X80 InverX',
+    label: 'Poolroboter',
     desc: 'Leistungsstärkerer automatischer Bodenreiniger.',
     price: 938,
     group: 'robot',
@@ -183,7 +191,7 @@ export const PLACEABLES = {
   countercurrent: {
     id: 'countercurrent',
     kind: 'countercurrent',
-    label: 'Gegenstromanlage H240',
+    label: 'Gegenstromanlage',
     price: 8500,
     place: 'wall',
     exclusive: true,
@@ -192,7 +200,7 @@ export const PLACEABLES = {
     id: 'robotX60',
     kind: 'robot',
     variant: 'X60',
-    label: 'Poolroboter X60 InverX',
+    label: 'Poolroboter',
     price: 820,
     place: 'floor',
     exclusive: 'robot',
@@ -201,7 +209,7 @@ export const PLACEABLES = {
     id: 'robotX80',
     kind: 'robot',
     variant: 'X80',
-    label: 'Poolroboter X80 InverX',
+    label: 'Poolroboter',
     price: 938,
     place: 'floor',
     exclusive: 'robot',
@@ -229,8 +237,8 @@ export const PP_COLORS = [
 ]
 
 export const STEEL_FINISHES = [
-  { id: 'Gebuerstet', label: 'Gebürsteter Chromstahl', color: '#c4c9cc', metalness: 0.75, roughness: 0.35 },
-  { id: 'Poliert', label: 'Polierter Chromstahl', color: '#e6e9eb', metalness: 1.0, roughness: 0.05 },
+  { id: 'Gebuerstet', label: 'Gebürsteter Chromstahl', color: '#e8eef2', metalness: 0.92, roughness: 0.18 },
+  { id: 'Poliert', label: 'Polierter Chromstahl', color: '#f4f7f9', metalness: 0.98, roughness: 0.06 },
 ]
 
 // --- Schritt-Reihenfolge ---
@@ -251,7 +259,7 @@ export const SCENE_OPTIONS = [
 ]
 export const TIME_OPTIONS = [
   { id: 'day', label: 'Tag' },
-  { id: 'dusk', label: 'Nacht' },
+  { id: 'dusk', label: 'Abend' },
 ]
 
 export const DECK_MATERIALS = [
@@ -271,8 +279,60 @@ export const findDeckMaterial = (id) => DECK_MATERIALS.find((d) => d.id === id) 
 export const findPPColor = (id) => PP_COLORS.find((c) => c.id === id) || PP_COLORS[0]
 export const findSteelFinish = (id) => STEEL_FINISHES.find((c) => c.id === id) || STEEL_FINISHES[0]
 
-export function getBasePrice(type, system, sizeId) {
-  return BASE_PRICES[type]?.[system]?.[sizeId] ?? 0
+// Preis-Stützstellen nach Wasserfläche sortiert
+const AREA_ANCHORS = POOL_SIZES.map((s) => ({ id: s.id, area: s.length * s.width })).sort(
+  (a, b) => a.area - b.area,
+)
+
+/** Grössenklasse für Technik (Filter, Salz, Wärmepumpe, Rollladen): nächstgrössere Klasse. */
+export function sizeClassFor(length, width) {
+  const area = length * width
+  const hit = AREA_ANCHORS.find((a) => area <= a.area + 1e-6)
+  return (hit || AREA_ANCHORS[AREA_ANCHORS.length - 1]).id
+}
+
+export function clampDimension(key, value) {
+  const r = SIZE_RANGE[key]
+  if (!r) return value
+  const snapped = Math.round(value / r.step) * r.step
+  return Math.round(Math.min(r.max, Math.max(r.min, snapped)) * 1000) / 1000
+}
+
+export function formatDims(length, width, depth) {
+  const mm = (v) => Math.round(v * 1000)
+  return `${mm(length)} × ${mm(width)} × ${mm(depth)} mm`
+}
+
+export function formatDimsShort(length, width, depth) {
+  const m = (v) => v.toFixed(1).replace('.', ',')
+  return `${m(length)} × ${m(width)} × ${m(depth)} m`
+}
+
+/**
+ * Beckenpreis für beliebige Masse: lineare Interpolation der Katalogpreise über
+ * die Wasserfläche, ausserhalb des Katalogs mit der Steigung des Randsegments
+ * fortgeschrieben.
+ */
+export function getBasePrice(type, system, length, width) {
+  const table = BASE_PRICES[type]?.[system]
+  if (!table) return 0
+  const pts = AREA_ANCHORS.map((a) => ({ area: a.area, price: table[a.id] }))
+  const area = length * width
+
+  if (area <= pts[0].area) {
+    const slope = (pts[1].price - pts[0].price) / (pts[1].area - pts[0].area)
+    return Math.max(pts[0].price * 0.6, pts[0].price - (pts[0].area - area) * slope)
+  }
+  for (let i = 1; i < pts.length; i++) {
+    if (area <= pts[i].area) {
+      const t = (area - pts[i - 1].area) / (pts[i].area - pts[i - 1].area)
+      return pts[i - 1].price + t * (pts[i].price - pts[i - 1].price)
+    }
+  }
+  const a = pts[pts.length - 2]
+  const b = pts[pts.length - 1]
+  const slope = (b.price - a.price) / (b.area - a.area)
+  return b.price + (area - b.area) * slope
 }
 
 export function getStairsForType(type) {

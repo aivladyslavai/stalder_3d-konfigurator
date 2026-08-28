@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --stalder-ink: #0b1f33;
+  --stalder-ink-soft: #31465b;
+  --stalder-accent: #26a9dd;
+  --stalder-accent-dark: #087cae;
+  --stalder-line: #dbe2e8;
+  --stalder-surface: #ffffff;
+  --stalder-surface-soft: #f4f7f9;
+  --stalder-canvas: #e6edf2;
+}
+
 html,
 body,
 #root {
@@ -10,11 +21,114 @@ body,
   width: 100%;
   height: 100%;
   overflow: hidden;
-  /* STALDER nutzt Arial – gleiche Schriftfamilie für markenkonformes Erscheinungsbild */
-  font-family: Arial, Helvetica, 'Helvetica Neue', sans-serif;
-  color: #1a1a1a;
+  font-family: "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: var(--stalder-ink);
+  background: var(--stalder-canvas);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 canvas {
   touch-action: none;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--stalder-accent);
+  outline-offset: 2px;
+}
+
+.config-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #c8d2da transparent;
+}
+
+.config-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.config-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #c8d2da;
+}
+
+.dim-slider:focus-visible {
+  outline: none;
+}
+
+.dim-slider {
+  width: 100%;
+  height: 18px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dim-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--stalder-accent) 0,
+    var(--stalder-accent) var(--fill, 0%),
+    #e5e9ee var(--fill, 0%),
+    #e5e9ee 100%
+  );
+}
+
+.dim-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--stalder-accent) 0,
+    var(--stalder-accent) var(--fill, 0%),
+    #e5e9ee var(--fill, 0%),
+    #e5e9ee 100%
+  );
+}
+
+.dim-slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  margin-top: -6px;
+  height: 16px;
+  width: 16px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid var(--stalder-accent);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+}
+
+.dim-slider::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 999px;
+  background: #fff;
+  border: 2px solid var(--stalder-accent);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+}
+
+.dim-slider:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--stalder-accent-dark);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
