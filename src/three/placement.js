@@ -70,6 +70,64 @@ export function snapToNamedWall(wall, length, width) {
   return { x: 0, z: hz, wall: 'south', rotY, corner: null }
 }
 
+/** Keep an accessory on the same wall, preserving its offset along that wall. */
+export function snapAlongWall(wall, along, length, width) {
+  const base = snapToNamedWall(wall, length, width)
+  const { hx, hz } = innerHalf(length, width, 0.06)
+  if (wall === 'west' || wall === 'east') {
+    return { ...base, z: Math.max(-hz, Math.min(hz, along)) }
+  }
+  return { ...base, x: Math.max(-hx, Math.min(hx, along)) }
+}
+
+/**
+ * Re-fit a placed accessory after the pool size changes.
+ * Wall items stay on their wall; floor/deck items keep a relative position.
+ */
+export function rescalePlacement(p, length, width, prevLength, prevWidth) {
+  if (!p) return p
+  if (p.place === 'deck' || p.kind === 'heatpump') {
+    return { ...p, ...snapToDeck(p.x, p.z, length, width) }
+  }
+  if (p.place === 'wall' || p.wall) {
+    const wall = p.wall || nearestWall(p.x, p.z, prevLength, prevWidth)
+    const prev = innerHalf(prevLength, prevWidth, 0.06)
+    const next = innerHalf(length, width, 0.06)
+    let along = wall === 'west' || wall === 'east' ? p.z : p.x
+    if (wall === 'west' || wall === 'east') {
+      if (prev.hz > 1e-6) along *= next.hz / prev.hz
+    } else if (prev.hx > 1e-6) {
+      along *= next.hx / prev.hx
+    }
+    return { ...p, ...snapAlongWall(wall, along, length, width) }
+  }
+  if (p.place === 'floor') {
+    const prev = innerHalf(prevLength, prevWidth, 0.35)
+    const next = innerHalf(length, width, 0.35)
+    const x = prev.hx > 1e-6 ? (p.x / prev.hx) * next.hx : p.x
+    const z = prev.hz > 1e-6 ? (p.z / prev.hz) * next.hz : p.z
+    return { ...p, ...clampInPool(x, z, length, width, 0.35) }
+  }
+  return { ...p, ...clampInPool(p.x, p.z, length, width) }
+}
+
+export function wallDirXZ(wall) {
+  if (wall === 'east') return [ -1, 0 ]
+  if (wall === 'north') return [ 0, 1 ]
+  if (wall === 'south') return [ 0, -1 ]
+  return [ 1, 0 ]
+}
+
+/** Surface-jet origin (world XZ) just in front of the Gegenstromdüse. */
+export function jetFlowFromPlacement(p) {
+  if (!p) return null
+  const dir = wallDirXZ(p.wall)
+  return {
+    origin: [p.x + dir[0] * 0.14, p.z + dir[1] * 0.14],
+    dir,
+  }
+}
+
 export function snapToCorner(x, z) {
   const corner = nearestCorner(x, z)
   return { x: 0, z: 0, wall: null, rotY: CORNER_ROT[corner], corner }

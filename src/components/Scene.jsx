@@ -25,7 +25,7 @@ import Liege, { Bank } from './Accessories/Liege'
 import Robot from './Accessories/Robot'
 import { usePoolConfig, getPoolMaterial } from '../hooks/usePoolConfig'
 import { visualShapeForSystem, findStair } from '../data/config'
-import { resolveSnap } from '../three/placement'
+import { jetFlowFromPlacement, resolveSnap } from '../three/placement'
 import { waterLevelFor } from '../three/footprint'
 import { FLOAT_LAYER, SCENERY_LAYER, applyLayer } from '../three/layers'
 
@@ -347,6 +347,14 @@ export default function Scene() {
   )
   const L = useMemo(() => lighting(scene, timeOfDay), [scene, timeOfDay])
   const outdoor = scene !== 'indoor'
+  const jetPlacement =
+    placing?.kind === 'countercurrent' && placing.preview
+      ? placing.preview
+      : placements.find((p) => p.kind === 'countercurrent') || null
+  const jetFlow = useMemo(
+    () => jetFlowFromPlacement(jetPlacement),
+    [jetPlacement?.x, jetPlacement?.z, jetPlacement?.wall],
+  )
   const deckMargin = outdoor ? 2.8 : 5.2
   // Nicht über die Hecke hinaus zoomen, sonst blickt man von aussen ins Grundstück
   const maxDist = useMemo(
@@ -433,6 +441,7 @@ export default function Scene() {
           led={led}
           envMode={scene === 'indoor' ? 'indoor' : timeOfDay}
           pickable={!placing}
+          jet={jetFlow}
         />
         {stairItem.visual && (
           <Stairs

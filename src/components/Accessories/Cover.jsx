@@ -63,44 +63,58 @@ function makeSlatGeometry(span) {
   return g
 }
 
+function applySlatMatrices(mesh, { flatCount, wrapCount, y, rx, coverStart }) {
+  if (!mesh) return
+  const dummy = new THREE.Object3D()
+  const want = flatCount + wrapCount
+  const cap = mesh.instanceMatrix?.count ?? want
+  const n = Math.min(want, cap)
+  mesh.count = n
+  for (let i = 0; i < flatCount; i++) {
+    dummy.position.set(coverStart + (i + 0.5) * PITCH, y, 0)
+    dummy.rotation.set(0, 0, 0)
+    dummy.updateMatrix()
+    mesh.setMatrixAt(i, dummy.matrix)
+  }
+  const R = ROLL_R + SLAT_H * 0.25
+  for (let j = 0; j < wrapCount; j++) {
+    const a = Math.PI + (j + 0.2) * 0.34
+    dummy.position.set(rx + Math.cos(a) * R, y + Math.sin(a) * R, 0)
+    dummy.rotation.set(0, 0, a - Math.PI)
+    dummy.updateMatrix()
+    mesh.setMatrixAt(flatCount + j, dummy.matrix)
+  }
+  mesh.instanceMatrix.needsUpdate = true
+  mesh.frustumCulled = false
+  mesh.computeBoundingSphere()
+}
+
 function Cover({ poolLength, poolWidth, waterY = -0.17 }) {
   const meshRef = useRef()
   const t = WALL_THICKNESS
   const span = Math.max(0.6, poolWidth - t * 2 - 0.04)
   const innerMaxX = poolLength / 2 - t - 0.03
   const rx = innerMaxX - ROLL_R * 0.85
-  const y = waterY + SLAT_H / 2 + 0.01
-  // Offene Hälfte (Treppe, −X), Lamellen nur auf der Plus-X-Seite bis zur Mitte.
-  const coverStart = 0.08
+  const y = waterY + SLAT_H / 2 + 0.028
+  // Westseite bleibt frei (Treppe). Lamellen von der Beckenmitte bis zur Welle (+X).
+  const coverStart = 0.04
   const coverEnd = rx - ROLL_R - 0.02
   const flatCount = Math.max(4, Math.floor((coverEnd - coverStart) / PITCH))
   const wrapCount = 7
   const count = flatCount + wrapCount
+  const layout = { flatCount, wrapCount, y, rx, coverStart }
 
   const geometry = useMemo(() => makeSlatGeometry(span), [span])
   useLayoutEffect(() => () => geometry.dispose(), [geometry])
 
+  const slatRef = (mesh) => {
+    meshRef.current = mesh
+    applySlatMatrices(mesh, layout)
+  }
+
   useLayoutEffect(() => {
-    const mesh = meshRef.current
-    if (!mesh) return
-    const dummy = new THREE.Object3D()
-    for (let i = 0; i < flatCount; i++) {
-      dummy.position.set(coverStart + (i + 0.5) * PITCH, y, 0)
-      dummy.rotation.set(0, 0, 0)
-      dummy.updateMatrix()
-      mesh.setMatrixAt(i, dummy.matrix)
-    }
-    const R = ROLL_R + SLAT_H * 0.25
-    for (let j = 0; j < wrapCount; j++) {
-      const a = Math.PI + (j + 0.2) * 0.34
-      dummy.position.set(rx + Math.cos(a) * R, y + Math.sin(a) * R, 0)
-      dummy.rotation.set(0, 0, a - Math.PI)
-      dummy.updateMatrix()
-      mesh.setMatrixAt(flatCount + j, dummy.matrix)
-    }
-    mesh.instanceMatrix.needsUpdate = true
-    mesh.computeBoundingSphere()
-  }, [flatCount, wrapCount, y, rx, coverStart])
+    applySlatMatrices(meshRef.current, layout)
+  }, [flatCount, wrapCount, y, rx, coverStart, count, geometry])
 
   const coverLen = flatCount * PITCH
   const coverMid = coverStart + coverLen / 2
@@ -108,8 +122,8 @@ function Cover({ poolLength, poolWidth, waterY = -0.17 }) {
   return (
     <group>
       <instancedMesh
-        key={`${count}-${span.toFixed(2)}`}
-        ref={meshRef}
+        key={`${count}-${span.toFixed(3)}`}
+        ref={slatRef}
         args={[geometry, null, count]}
         castShadow
         receiveShadow

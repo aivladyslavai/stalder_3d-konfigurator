@@ -39,14 +39,15 @@ function clampToRoundedRect(x, z, hx, hz, r) {
   return { x: sx * bx + dx * k, z: sz * bz + dz * k }
 }
 
-function makeWaterGeometry(length, width, radius, wall) {
+function makeWaterGeometry(length, width, radius, wall, dense = false) {
   const lw = Math.max(0.4, length - wall)
   const ww = Math.max(0.4, width - wall)
   const hx = lw / 2
   const hz = ww / 2
   const r = Math.max(0, Math.min(radius - wall, hx - 0.02, hz - 0.02))
-  const segX = Math.max(32, Math.min(80, Math.ceil(lw * 12)))
-  const segZ = Math.max(20, Math.min(48, Math.ceil(ww * 12)))
+  const dens = dense ? 22 : 12
+  const segX = Math.max(32, Math.min(110, Math.ceil(lw * dens)))
+  const segZ = Math.max(20, Math.min(72, Math.ceil(ww * dens)))
   const g = new THREE.PlaneGeometry(lw, ww, segX, segZ)
   g.rotateX(-Math.PI / 2)
   if (r > 0.001) {
@@ -61,15 +62,22 @@ function makeWaterGeometry(length, width, radius, wall) {
   return g
 }
 
+const WAVE_KEY = 'wj5'
+
 function patchWaveMaterial(mat) {
-  if (!mat || mat.userData.wavesPatched) return
-  const orig = mat.onBeforeCompile
+  if (!mat || mat.userData.waveKey === WAVE_KEY) return
+  if (!mat.userData.waveBaseCompile) {
+    mat.userData.waveBaseCompile = mat.onBeforeCompile
+  }
+  const base = mat.userData.waveBaseCompile
   mat.onBeforeCompile = (shader, renderer) => {
-    if (typeof orig === 'function') orig.call(mat, shader, renderer)
+    if (typeof base === 'function') base.call(mat, shader, renderer)
     injectWaterWaves(shader)
     mat.userData.shader = shader
   }
-  mat.userData.wavesPatched = true
+  const prevKey = mat.customProgramCacheKey?.bind(mat)
+  mat.customProgramCacheKey = () => (prevKey ? prevKey() : '') + '|' + WAVE_KEY
+  mat.userData.waveKey = WAVE_KEY
   mat.needsUpdate = true
 }
 
@@ -83,9 +91,12 @@ function Water({
   pickable = true,
   resolution = 512,
   samples = 2,
+  jet = null,
 }) {
   const meshRef = useRef()
   const matRef = useRef()
+  const jetRef = useRef(jet)
+  jetRef.current = jet
   const gl = useThree((s) => s.gl)
   const camera = useThree((s) => s.camera)
   const fbo = useFBO(resolution)
@@ -97,7 +108,11 @@ function Water({
   const hz = (width - t) / 2
   const cornerR = Math.max(0, r - t)
 
-  const geometry = useMemo(() => makeWaterGeometry(length, width, r, t), [length, width, r, t])
+  const dense = Boolean(jet)
+  const geometry = useMemo(
+    () => makeWaterGeometry(length, width, r, t, dense),
+    [length, width, r, t, dense],
+  )
 
   const skyEnv = useMemo(() => {
     const equirect = makeSkyEnvTexture(256, envMode)
@@ -161,6 +176,15 @@ function Water({
         shader.uniforms.uTime.value = state.clock.elapsedTime
         shader.uniforms.uHalf.value.set(hx, hz)
         shader.uniforms.uCornerR.value = cornerR
+      }
+      if (shader?.uniforms?.uJetOn) {
+        const flow = jetRef.current
+        const zOff = isInfinity ? t / 2 : 0
+        shader.uniforms.uJetOn.value = flow ? 1 : 0
+        if (flow) {
+          shader.uniforms.uJetOrigin.value.set(flow.origin[0], flow.origin[1] - zOff)
+          shader.uniforms.uJetDir.value.set(flow.dir[0], flow.dir[1])
+        }
       }
     }
   }, -1)

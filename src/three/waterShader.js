@@ -1,14 +1,18 @@
 import * as THREE from 'three'
 
 /**
- * Gerstner-Wellen + Kapillar-Rauschen für die Pool-Oberfläche.
+ * Gerstner-Wellen + Kapillar-Rauschen + Gegenstrom-Wake für die Pool-Oberfläche.
  * Wird in MeshTransmissionMaterial.onBeforeCompile eingehängt.
  */
 
 export const WATER_GLSL = /* glsl */ `
+// WATER_SHADER_BEGIN
 uniform float uTime;
 uniform vec2 uHalf;
 uniform float uCornerR;
+uniform float uJetOn;
+uniform vec2 uJetOrigin;
+uniform vec2 uJetDir;
 varying vec2 vPoolXZ;
 varying vec3 vWaveN;
 
@@ -58,6 +62,55 @@ void gerstner(
   nrm.y -= q * wa * s;
 }
 
+void jetEval(vec2 xz, out float env, out float foam, out vec3 disp, out vec3 nPerturb) {
+  env = 0.0;
+  foam = 0.0;
+  disp = vec3(0.0);
+  nPerturb = vec3(0.0);
+  if (uJetOn < 0.001) return;
+
+  vec2 dir = normalize(uJetDir);
+  vec2 lat = vec2(-dir.y, dir.x);
+  vec2 toP = xz - uJetOrigin;
+  float along = dot(toP, dir);
+  float across = dot(toP, lat);
+
+  float width = mix(0.04, 0.62, pow(clamp(along / 3.4, 0.0, 1.0), 0.68));
+  float radial = exp(-(across * across) / max(2.0 * width * width, 1e-4));
+  float stream = smoothstep(-0.03, 0.14, along) * exp(-max(along, 0.0) * 0.28);
+  env = radial * stream;
+
+  float phaseFast = along * 24.0 - uTime * 15.0;
+  float phaseSlow = along * 9.2 - uTime * 5.4;
+  float travel = sin(phaseFast + across * 6.0) * 0.5;
+  travel += sin(phaseFast * 1.68 + across * 22.0) * 0.28;
+  travel += sin(phaseSlow + across * 7.5) * 0.22;
+
+  float armW = 0.035 + max(along, 0.0) * 0.016;
+  float armOff = abs(across) - max(along, 0.0) * 0.34;
+  float vArm = exp(-(armOff * armOff) / max(2.0 * armW * armW, 1e-4));
+  vArm *= smoothstep(0.12, 0.55, along) * exp(-along * 0.32);
+
+  vec2 adv = vec2(along * 5.4 - uTime * 3.6, across * 16.0);
+  float turb = fbm3(adv) - 0.42;
+  turb += 0.4 * (fbm3(adv * 2.2 + 5.0) - 0.5);
+  float near = exp(-max(along, 0.0) * 3.2) * exp(-across * across * 70.0) * smoothstep(-0.04, 0.1, along);
+
+  disp.y = env * (travel * 0.028 + turb * 0.02);
+  disp.y += vArm * 0.014 * sin(along * 13.5 - uTime * 7.6);
+  disp.y += near * max(turb, 0.0) * 0.026;
+  disp.xz = dir * env * 0.022;
+
+  nPerturb.xz -= dir * (env * travel * 1.55 + vArm * 0.8);
+  nPerturb.xz -= lat * (across / max(width, 0.03)) * env * 1.05;
+  nPerturb.xz -= lat * sign(across + 1e-5) * vArm * 0.6;
+  nPerturb.xz += vec2(turb, fbm3(adv + 4.2) - 0.5) * (near * 1.2 + env * 0.4);
+
+  float foamCore = env * smoothstep(0.12, 0.55, abs(travel) + max(turb, 0.0));
+  foamCore *= smoothstep(3.1, 0.06, along);
+  foam = clamp(foamCore * 1.15 + vArm * 0.4 + near * max(turb + 0.1, 0.0) * 0.9, 0.0, 1.0);
+}
+
 vec3 waterDisplace(vec2 xz, out vec3 normal) {
   vec3 disp = vec3(0.0);
   vec3 nrm = vec3(0.0, 1.0, 0.0);
@@ -78,6 +131,14 @@ vec3 waterDisplace(vec2 xz, out vec3 normal) {
   cap += (fbm3(xz * 31.0 + vec2(-uTime * 0.11, uTime * 0.08)) - 0.5) * 0.00045;
   disp.y += cap;
 
+  float env;
+  float foam;
+  vec3 jdisp;
+  vec3 jn;
+  jetEval(xz, env, foam, jdisp, jn);
+  disp += jdisp;
+  nrm.xz += jn.xz;
+
   normal = normalize(nrm);
   if (normal.y < 0.2) normal = vec3(0.0, 1.0, 0.0);
   return disp;
@@ -95,15 +156,25 @@ vec3 waterMicroNormal(vec2 xz) {
   vec3 n2 = normalize(vec3(hx2, 1.0, hz2));
   return normalize(n1 * 0.78 + n2 * 0.22);
 }
+// WATER_SHADER_END
 `
+
+const BLOCK_RE = /\/\/ WATER_SHADER_BEGIN[\s\S]*?\/\/ WATER_SHADER_END\n?/
+
+function prependWaterGLSL(src) {
+  return WATER_GLSL + src.replace(BLOCK_RE, '')
+}
 
 export function injectWaterWaves(shader) {
   shader.uniforms.uTime = shader.uniforms.uTime || { value: 0 }
   shader.uniforms.uHalf = shader.uniforms.uHalf || { value: new THREE.Vector2(2.5, 1.25) }
   shader.uniforms.uCornerR = shader.uniforms.uCornerR || { value: 0 }
+  shader.uniforms.uJetOn = shader.uniforms.uJetOn || { value: 0 }
+  shader.uniforms.uJetOrigin = shader.uniforms.uJetOrigin || { value: new THREE.Vector2() }
+  shader.uniforms.uJetDir = shader.uniforms.uJetDir || { value: new THREE.Vector2(1, 0) }
 
-  if (!shader.vertexShader.includes('waterDisplace')) {
-    shader.vertexShader = WATER_GLSL + shader.vertexShader
+  shader.vertexShader = prependWaterGLSL(shader.vertexShader)
+  if (!shader.vertexShader.includes('waveOff = waterDisplace')) {
     shader.vertexShader = shader.vertexShader.replace(
       '#include <beginnormal_vertex>',
       /* glsl */ `
@@ -124,20 +195,46 @@ export function injectWaterWaves(shader) {
     )
   }
 
-  if (!shader.fragmentShader.includes('waterMicroNormal')) {
-    shader.fragmentShader = WATER_GLSL + shader.fragmentShader
+  shader.fragmentShader = prependWaterGLSL(shader.fragmentShader)
+  if (!shader.fragmentShader.includes('jetFoamAmt')) {
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <normal_fragment_maps>',
       /* glsl */ `
       #include <normal_fragment_maps>
       {
+        float jetEnv;
+        float jetFoamAmt;
+        vec3 jetDisp;
+        vec3 jetN;
+        jetEval(vPoolXZ, jetEnv, jetFoamAmt, jetDisp, jetN);
         vec3 micro = waterMicroNormal(vPoolXZ);
         vec3 nWorld = inverseTransformDirection(normal, viewMatrix);
-        nWorld = normalize(mix(nWorld, micro, 0.24));
+        nWorld = normalize(mix(nWorld, micro, 0.24 + jetEnv * 0.38));
+        nWorld = normalize(nWorld + vec3(jetN.xz * 0.62, 0.0));
         float inside = max(0.0, -sdRoundBox(vPoolXZ, uHalf, uCornerR));
         vec2 away = normalize(vPoolXZ + vec2(1e-5));
         nWorld = normalize(mix(nWorld, normalize(vec3(-away.x, 1.8, -away.y)), exp(-inside * 48.0) * 0.14));
         normal = normalize(transformDirection(nWorld, viewMatrix));
+        roughnessFactor = mix(roughnessFactor, 0.72, jetFoamAmt);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.88, 0.96, 1.0), jetFoamAmt * 0.85);
+      }
+      `,
+    )
+  }
+
+  if (!shader.fragmentShader.includes('gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.82')) {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <opaque_fragment>',
+      /* glsl */ `
+      #include <opaque_fragment>
+      {
+        float jetEnv2;
+        float jetFoam2;
+        vec3 jetDisp2;
+        vec3 jetN2;
+        jetEval(vPoolXZ, jetEnv2, jetFoam2, jetDisp2, jetN2);
+        gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.82, 0.93, 1.0), jetFoam2 * 0.62);
+        gl_FragColor.rgb += vec3(0.12, 0.18, 0.22) * jetEnv2 * 0.18;
       }
       `,
     )

@@ -16,7 +16,7 @@ import {
   getLedInfo,
   getStairsForType,
 } from '../data/config'
-import { clampInPool, snapToDeck, snapToNamedWall } from '../three/placement'
+import { rescalePlacement, snapToNamedWall } from '../three/placement'
 
 export { WALL_THICKNESS, visualShapeForSystem } from '../data/config'
 
@@ -165,11 +165,23 @@ export const usePoolConfig = create((set, get) => ({
     const cur = get()
     if (cur[key] === value) return
     const dims = { length: cur.length, width: cur.width, depth: cur.depth, [key]: value }
-    const placements = cur.placements.map((p) => {
-      if (p.place === 'deck') return { ...p, ...snapToDeck(p.x, p.z, dims.length, dims.width) }
-      return { ...p, ...clampInPool(p.x, p.z, dims.length, dims.width) }
-    })
-    set({ ...dims, placements })
+    const placements = cur.placements.map((p) =>
+      rescalePlacement(p, dims.length, dims.width, cur.length, cur.width),
+    )
+    let placing = cur.placing
+    if (placing?.preview?.wall) {
+      placing = {
+        ...placing,
+        preview: rescalePlacement(
+          { ...placing.preview, place: placing.place },
+          dims.length,
+          dims.width,
+          cur.length,
+          cur.width,
+        ),
+      }
+    }
+    set({ ...dims, placements, placing })
     get().recompute()
   },
   setStair: (stair) => {
