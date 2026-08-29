@@ -291,7 +291,11 @@ export default function ConfigSidebar() {
               active={placingId === 'countercurrent' || has('countercurrent')}
               onClick={() => s.startPlacing('countercurrent')}
               title="Gegenstromanlage"
-              hint="Position im Plan wählen"
+              hint={
+                s.stair === 'VolleBreite'
+                  ? 'Nicht auf derselben Stirnseite wie die volle Treppe'
+                  : 'Position im Plan wählen'
+              }
             />
             <RowBtn
               active={placingId === 'robotX60' || placingId === 'robotX80' || has('robotX60') || has('robotX80')}

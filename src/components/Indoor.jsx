@@ -66,6 +66,30 @@ function Indoor({ poolLength, poolWidth }) {
   )
   useLayoutEffect(() => () => floorGeo.dispose(), [floorGeo])
 
+  const slats = useMemo(() => {
+    const geo = new THREE.BoxGeometry(0.04, 3.1, 0.08)
+    const mat = new THREE.MeshStandardMaterial({ color: '#8d6a45', roughness: 0.72, metalness: 0 })
+    const mesh = new THREE.InstancedMesh(geo, mat, 22)
+    mesh.castShadow = true
+    mesh.frustumCulled = false
+    const dummy = new THREE.Object3D()
+    for (let i = 0; i < 22; i++) {
+      dummy.position.set(-hx / 2 + 0.06, 1.55, -hz / 2 + 0.7 + (i / 21) * (hz - 1.4))
+      dummy.updateMatrix()
+      mesh.setMatrixAt(i, dummy.matrix)
+    }
+    mesh.instanceMatrix.needsUpdate = true
+    return mesh
+  }, [hx, hz])
+
+  useLayoutEffect(
+    () => () => {
+      slats.geometry.dispose()
+      slats.material.dispose()
+    },
+    [slats],
+  )
+
   useLayoutEffect(() => {
     const g = root.current
     if (!g) return
@@ -147,16 +171,7 @@ function Indoor({ poolLength, poolWidth }) {
         <meshStandardMaterial color="#8f857a" roughness={0.85} metalness={0} />
       </mesh>
 
-      {/* Holzlamellen an der Westwand */}
-      {Array.from({ length: 22 }, (_, i) => {
-        const z = -hz / 2 + 0.7 + (i / 21) * (hz - 1.4)
-        return (
-          <mesh key={`slat${i}`} position={[-hx / 2 + 0.06, 1.55, z]} castShadow>
-            <boxGeometry args={[0.04, 3.1, 0.08]} />
-            <meshStandardMaterial color="#8d6a45" roughness={0.72} metalness={0} />
-          </mesh>
-        )
-      })}
+      <primitive object={slats} />
 
       {/* Glas */}
       <mesh position={[0, sill + winH / 2, -hz / 2 - 0.04]}>

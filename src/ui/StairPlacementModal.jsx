@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { findStair, shortWallPlacementSpots, stairPlacementSpots } from '../data/config'
+import { findStair, shortWallPlacementSpots, stairPlacementSpots, fullWidthStairWall, countercurrentWall, otherShortWall } from '../data/config'
 import { usePoolConfig } from '../hooks/usePoolConfig'
 
 const PAD = 34
@@ -68,6 +68,12 @@ export default function StairPlacementModal() {
   const isStair = placing?.kind === 'stair'
   const isJet = placing?.kind === 'countercurrent'
   const stairItem = findStair(type, stair)
+  const placements = usePoolConfig((s) => s.placements)
+  const blockedWall = isJet
+    ? fullWidthStairWall(type, stair, stairWall)
+    : isStair && stairItem.visual === 'Breitstufentreppe'
+      ? countercurrentWall(placements)
+      : null
   const spots = useMemo(() => {
     if (isJet) return shortWallPlacementSpots()
     if (isStair) return stairPlacementSpots(stairItem.visual)
@@ -90,19 +96,25 @@ export default function StairPlacementModal() {
     if (isStair && placing.restore) previewStairAnchor(placing.restore)
     if (isJet) {
       const wall = placing.restorePlacement?.wall || 'west'
-      previewWallPlacement(wall)
+      previewWallPlacement(wall === blockedWall ? otherShortWall(blockedWall) : wall)
     }
   }
 
   const onPreview = (spot) => {
+    if (spot.wall && spot.wall === blockedWall) return
     if (isStair) previewStairAnchor(spot)
     else previewWallPlacement(spot.wall)
   }
 
   const onConfirm = (spot) => {
+    if (spot.wall && spot.wall === blockedWall) return
     if (isStair) setStairAnchor(spot)
     else confirmWallPlacement(spot.wall)
   }
+
+  const blockedHint = isJet
+    ? 'Nicht auf derselben Stirnseite wie die Treppe über gesamte Beckenbreite.'
+    : 'Nicht auf derselben Stirnseite wie die Gegenstromanlage.'
 
   return (
     <div className="absolute inset-0 z-20 flex items-center justify-center p-4">
@@ -160,28 +172,37 @@ export default function StairPlacementModal() {
             {spots.map((spot) => {
               const { x, y } = spotXY(spot.id, innerW, innerH, portrait)
               const active = isActive(spot)
+              const blocked = Boolean(spot.wall && spot.wall === blockedWall)
               return (
                 <button
                   key={spot.id}
                   type="button"
-                  aria-label={spot.label}
+                  aria-label={blocked ? `${spot.label}, nicht verfügbar` : spot.label}
                   aria-pressed={active}
+                  aria-disabled={blocked}
+                  disabled={blocked}
+                  title={blocked ? blockedHint : spot.label}
                   onMouseEnter={() => onPreview(spot)}
                   onFocus={() => onPreview(spot)}
                   onClick={() => onConfirm(spot)}
                   className={`stair-place-dot absolute h-11 w-11 -translate-x-1/2 -translate-y-1/2 rounded-full border-[1.5px] transition-all duration-150 ${
-                    active
-                      ? 'border-[#002B6F] bg-[#002B6F] shadow-[0_0_0_6px_rgba(0,43,111,0.16)]'
-                      : 'border-[#1a1a1a] bg-white hover:scale-110 hover:border-[#32B4E6] hover:shadow-[0_0_0_6px_rgba(50,180,230,0.22)]'
+                    blocked
+                      ? 'cursor-not-allowed border-gray-300 bg-gray-200 opacity-45'
+                      : active
+                        ? 'border-[#002B6F] bg-[#002B6F] shadow-[0_0_0_6px_rgba(0,43,111,0.16)]'
+                        : 'border-[#1a1a1a] bg-white hover:scale-110 hover:border-[#32B4E6] hover:shadow-[0_0_0_6px_rgba(50,180,230,0.22)]'
                   }`}
                   style={{ left: x, top: y }}
                 >
-                  {active && <span className="block h-2.5 w-2.5 rounded-full bg-white" />}
+                  {active && !blocked && <span className="block h-2.5 w-2.5 rounded-full bg-white" />}
                 </button>
               )
             })}
           </div>
         </div>
+        {blockedWall && (
+          <p className="mt-3 text-center text-[11px] leading-snug text-gray-500">{blockedHint}</p>
+        )}
       </div>
     </div>
   )

@@ -376,6 +376,24 @@ export function shortWallPlacementSpots() {
   ]
 }
 
+export function otherShortWall(wall) {
+  return wall === 'east' ? 'west' : 'east'
+}
+
+/** Stirnseite der Treppe über gesamte Beckenbreite, sonst null. */
+export function fullWidthStairWall(type, stair, stairWall) {
+  if (findStair(type, stair).visual !== 'Breitstufentreppe') return null
+  return stairWall === 'east' ? 'east' : 'west'
+}
+
+/** Stirnseite der Gegenstromanlage, sonst null. */
+export function countercurrentWall(placements) {
+  const p = placements?.find((x) => x.kind === 'countercurrent')
+  if (!p) return null
+  if (p.wall === 'east' || p.wall === 'west') return p.wall
+  return 'west'
+}
+
 export function getFilterInfo(sizeId) {
   return FILTER_BY_SIZE[sizeId] || FILTER_BY_SIZE.M
 }

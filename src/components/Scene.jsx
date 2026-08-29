@@ -141,29 +141,14 @@ function IndoorOrbitClamp({ hall, enabled }) {
     const minY = 1.52
     const maxY = Math.min(3.55, hall.h - 1.15)
     const p = camera.position
-    let dirty = false
-    if (p.x > maxX) {
-      p.x = maxX
-      dirty = true
-    } else if (p.x < -maxX) {
-      p.x = -maxX
-      dirty = true
-    }
-    if (p.z > maxZ) {
-      p.z = maxZ
-      dirty = true
-    } else if (p.z < -maxZ) {
-      p.z = -maxZ
-      dirty = true
-    }
-    if (p.y < minY) {
-      p.y = minY
-      dirty = true
-    } else if (p.y > maxY) {
-      p.y = maxY
-      dirty = true
-    }
-    if (dirty) controls.update()
+    if (p.x <= maxX && p.x >= -maxX && p.z <= maxZ && p.z >= -maxZ && p.y >= minY && p.y <= maxY) return
+    if (p.x > maxX) p.x = maxX
+    else if (p.x < -maxX) p.x = -maxX
+    if (p.z > maxZ) p.z = maxZ
+    else if (p.z < -maxZ) p.z = -maxZ
+    if (p.y < minY) p.y = minY
+    else if (p.y > maxY) p.y = maxY
+    controls.update()
   })
   return null
 }
@@ -390,6 +375,7 @@ export default function Scene() {
   const placements = usePoolConfig((s) => s.placements)
   const placing = usePoolConfig((s) => s.placing)
   const topView = usePoolConfig((s) => s.topView)
+  const [coverBlocking, setCoverBlocking] = useState(false)
 
   const material = useMemo(
     () => getPoolMaterial({ type, ppColor, steelFinish }),
@@ -490,7 +476,7 @@ export default function Scene() {
           scene={scene}
           waterY={waterLevelFor(shape)}
           showFloat
-          rolladen={rolladen}
+          rolladen={rolladen || coverBlocking}
           jet={jetFlow}
         />
         <Pool length={length} width={width} depth={depth} material={material} shape={shape} />
@@ -517,7 +503,7 @@ export default function Scene() {
           />
         )}
         {led && <LedStrip {...acc} />}
-        {rolladen && <Cover {...acc} waterY={waterLevelFor(shape)} />}
+        <Cover rolladen={rolladen} onBlocking={setCoverBlocking} {...acc} waterY={waterLevelFor(shape)} />
         <PlacedItems
           placements={placements}
           depth={depth}

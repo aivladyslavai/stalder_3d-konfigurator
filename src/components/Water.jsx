@@ -141,6 +141,7 @@ function Water({
   useFrame((state) => {
     const mesh = meshRef.current
     if (!mesh) return
+    if (typeof document !== 'undefined' && document.hidden) return
 
     setFloatsVisible(false)
     state.camera.layers.disable(FLOAT_LAYER)
@@ -170,8 +171,7 @@ function Water({
 
     const mat = matRef.current
     if (mat) {
-      patchWaveMaterial(mat)
-      mat.buffer = fbo.texture
+      if (mat.buffer !== fbo.texture) mat.buffer = fbo.texture
       const shader = mat.userData?.shader
       if (shader?.uniforms?.uTime) {
         shader.uniforms.uTime.value = state.clock.elapsedTime

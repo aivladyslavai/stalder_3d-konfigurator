@@ -15,6 +15,9 @@ import {
   getRolladenPrice,
   getLedInfo,
   getStairsForType,
+  fullWidthStairWall,
+  countercurrentWall,
+  otherShortWall,
 } from '../data/config'
 import { rescalePlacement, snapToNamedWall } from '../three/placement'
 
@@ -203,22 +206,36 @@ export const usePoolConfig = create((set, get) => ({
         restore,
       },
     }
-    if (item?.visual === 'Breitstufentreppe' && cur.stairWall !== 'west' && cur.stairWall !== 'east') {
-      patch.stairWall = 'west'
+    if (item?.visual === 'Breitstufentreppe') {
+      const jetWall = countercurrentWall(cur.placements)
+      const wall = patch.stairWall || cur.stairWall
+      if (wall !== 'west' && wall !== 'east') {
+        patch.stairWall = jetWall === 'west' ? 'east' : 'west'
+      } else if (jetWall && wall === jetWall) {
+        patch.stairWall = otherShortWall(jetWall)
+      }
     }
     set(patch)
     get().recompute()
   },
   previewStairAnchor: ({ wall, corner }) => {
+    const cur = get()
+    if (findStair(cur.type, cur.stair).visual === 'Breitstufentreppe' && wall && wall === countercurrentWall(cur.placements)) {
+      return
+    }
     set({
-      stairWall: wall || get().stairWall,
-      stairCorner: corner || get().stairCorner,
+      stairWall: wall || cur.stairWall,
+      stairCorner: corner || cur.stairCorner,
     })
   },
   setStairAnchor: ({ wall, corner }) => {
+    const cur = get()
+    if (findStair(cur.type, cur.stair).visual === 'Breitstufentreppe' && wall && wall === countercurrentWall(cur.placements)) {
+      return
+    }
     set({
-      stairWall: wall || get().stairWall,
-      stairCorner: corner || get().stairCorner,
+      stairWall: wall || cur.stairWall,
+      stairCorner: corner || cur.stairCorner,
       placing: null,
     })
   },
@@ -235,12 +252,15 @@ export const usePoolConfig = create((set, get) => ({
     if (!item) return
     const cur = get()
     const existing = cur.placements.find((p) => p.catalogId === item.id)
-    const preview =
-      item.kind === 'countercurrent'
-        ? existing
-          ? { wall: existing.wall || 'west', x: existing.x, z: existing.z, rotY: existing.rotY }
-          : snapToNamedWall('west', cur.length, cur.width)
-        : null
+    let preview = null
+    if (item.kind === 'countercurrent') {
+      const blocked = fullWidthStairWall(cur.type, cur.stair, cur.stairWall)
+      let wall = existing?.wall || 'west'
+      if (wall === blocked) wall = otherShortWall(blocked)
+      preview = existing && existing.wall === wall
+        ? { wall: existing.wall || wall, x: existing.x, z: existing.z, rotY: existing.rotY }
+        : snapToNamedWall(wall, cur.length, cur.width)
+    }
     set({
       placing: {
         catalogId: item.id,
@@ -255,12 +275,16 @@ export const usePoolConfig = create((set, get) => ({
     })
   },
   previewWallPlacement: (wall) => {
-    const { placing, length, width } = get()
+    const { placing, length, width, type, stair, stairWall } = get()
     if (!placing) return
+    if (placing.kind === 'countercurrent' && wall === fullWidthStairWall(type, stair, stairWall)) return
     set({ placing: { ...placing, preview: snapToNamedWall(wall, length, width) } })
   },
   confirmWallPlacement: (wall) => {
-    const snap = snapToNamedWall(wall, get().length, get().width)
+    const cur = get()
+    if (!cur.placing) return
+    if (cur.placing.kind === 'countercurrent' && wall === fullWidthStairWall(cur.type, cur.stair, cur.stairWall)) return
+    const snap = snapToNamedWall(wall, cur.length, cur.width)
     get().confirmPlacement(snap)
   },
   cancelPlacing: () => {
@@ -288,6 +312,12 @@ export const usePoolConfig = create((set, get) => ({
     }
     const item = findPlaceable(placing.catalogId)
     if (!item) return
+    if (
+      item.kind === 'countercurrent' &&
+      snap.wall === fullWidthStairWall(get().type, get().stair, get().stairWall)
+    ) {
+      return
+    }
     set((s) => {
       let next = s.placements
       if (item.exclusive === true) {
