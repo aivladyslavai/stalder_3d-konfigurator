@@ -328,27 +328,144 @@ export function makePoolPanelTexture(size = 512, baseColor = '#dfe6ea', kind = '
   return tex
 }
 
+function canvasToTex(canvas, srgb = false) {
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping
+  tex.anisotropy = 8
+  tex.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace
+  return tex
+}
+
 /**
- * Überlaufrost: feine Edelstahl-Lamellen mit dunklen Schlitzen dazwischen.
- * Die Lamellen laufen entlang der U-Achse.
+ * Lochblech für Schwebestufen: nahtloses Edelstahl-Gitter mit Fase.
+ * map / roughness / metalness / normal / alpha.
  */
+export function makePerforatedTreadMaps(size = 512, holes = 12) {
+  const n = holes
+  const cell = size / n
+  const holeR = cell * 0.33
+  const rim = cell * 0.1
+  const height = new Float32Array(size * size)
+
+  const stamp = (cx, cy) => {
+    const rMax = holeR + rim + 1.5
+    const x0 = Math.max(0, Math.floor(cx - rMax))
+    const x1 = Math.min(size - 1, Math.ceil(cx + rMax))
+    const y0 = Math.max(0, Math.floor(cy - rMax))
+    const y1 = Math.min(size - 1, Math.ceil(cy + rMax))
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy)
+        let h = 1
+        if (d <= holeR - 0.6) h = 0
+        else if (d < holeR + rim) {
+          const t = (d - (holeR - 0.6)) / (rim + 0.6)
+          h = smooth(Math.min(1, Math.max(0, t)))
+        }
+        const idx = y * size + x
+        if (h < height[idx]) height[idx] = h
+      }
+    }
+  }
+
+  height.fill(1)
+  for (let j = 0; j < n; j++) {
+    const odd = j & 1
+    for (let i = 0; i < n; i++) {
+      const cx = ((i + (odd ? 0.5 : 0) + 0.5) % n) * cell
+      const cy = (j + 0.5) * cell
+      stamp(cx, cy)
+      if (odd && i === 0) stamp(cx + size, cy)
+    }
+  }
+
+  const color = document.createElement('canvas')
+  color.width = color.height = size
+  const rough = document.createElement('canvas')
+  rough.width = rough.height = size
+  const metal = document.createElement('canvas')
+  metal.width = metal.height = size
+  const alpha = document.createElement('canvas')
+  alpha.width = alpha.height = size
+  const norm = document.createElement('canvas')
+  norm.width = norm.height = size
+
+  const cCtx = color.getContext('2d')
+  const rCtx = rough.getContext('2d')
+  const mCtx = metal.getContext('2d')
+  const aCtx = alpha.getContext('2d')
+  const nCtx = norm.getContext('2d')
+  const cImg = cCtx.createImageData(size, size)
+  const rImg = rCtx.createImageData(size, size)
+  const mImg = mCtx.createImageData(size, size)
+  const aImg = aCtx.createImageData(size, size)
+  const nImg = nCtx.createImageData(size, size)
+
+  const at = (x, y) => height[(((y % size) + size) % size) * size + (((x % size) + size) % size)]
+  const strength = 2.8
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const h = height[y * size + x]
+      const brush = 0.88 + fbm((x / size) * 18, (y / size) * 3.2, 3) * 0.22
+      const steelR = Math.min(255, (210 + brush * 38) * h + 18 * (1 - h))
+      const steelG = Math.min(255, (218 + brush * 32) * h + 28 * (1 - h))
+      const steelB = Math.min(255, (224 + brush * 28) * h + 36 * (1 - h))
+      const i = (y * size + x) * 4
+      cImg.data[i] = steelR
+      cImg.data[i + 1] = steelG
+      cImg.data[i + 2] = steelB
+      cImg.data[i + 3] = 255
+      const rv = Math.round((0.11 + (1 - h) * 0.72) * 255)
+      rImg.data[i] = rImg.data[i + 1] = rImg.data[i + 2] = rv
+      rImg.data[i + 3] = 255
+      const mv = Math.round(h * 255)
+      mImg.data[i] = mImg.data[i + 1] = mImg.data[i + 2] = mv
+      mImg.data[i + 3] = 255
+      const av = h > 0.12 ? 255 : 0
+      aImg.data[i] = aImg.data[i + 1] = aImg.data[i + 2] = av
+      aImg.data[i + 3] = 255
+
+      let nx = (at(x - 1, y) - at(x + 1, y)) * strength
+      let ny = (at(x, y - 1) - at(x, y + 1)) * strength
+      let nz = 1
+      const len = Math.hypot(nx, ny, nz) || 1
+      nImg.data[i] = ((nx / len) * 0.5 + 0.5) * 255
+      nImg.data[i + 1] = ((ny / len) * 0.5 + 0.5) * 255
+      nImg.data[i + 2] = ((nz / len) * 0.5 + 0.5) * 255
+      nImg.data[i + 3] = 255
+    }
+  }
+  cCtx.putImageData(cImg, 0, 0)
+  rCtx.putImageData(rImg, 0, 0)
+  mCtx.putImageData(mImg, 0, 0)
+  aCtx.putImageData(aImg, 0, 0)
+  nCtx.putImageData(nImg, 0, 0)
+
+  return {
+    map: canvasToTex(color, true),
+    roughnessMap: canvasToTex(rough),
+    metalnessMap: canvasToTex(metal),
+    alphaMap: canvasToTex(alpha),
+    normalMap: canvasToTex(norm),
+  }
+}
 export function makeGrateTexture(size = 256, slats = 16) {
   const canvas = document.createElement('canvas')
   canvas.width = size
   canvas.height = 16
   const ctx = canvas.getContext('2d')
+  ctx.clearRect(0, 0, size, 16)
   const pitch = size / slats
-  ctx.fillStyle = '#677076'
-  ctx.fillRect(0, 0, size, 16)
   for (let i = 0; i < slats; i++) {
     const x = i * pitch
-    const w = pitch * 0.8
+    const w = pitch * 0.62
     const grad = ctx.createLinearGradient(x, 0, x + w, 0)
-    grad.addColorStop(0, '#aeb6bb')
+    grad.addColorStop(0, '#9aa4aa')
     grad.addColorStop(0.4, '#eef2f4')
-    grad.addColorStop(1, '#96a0a6')
+    grad.addColorStop(1, '#8b969c')
     ctx.fillStyle = grad
-    ctx.fillRect(x, 0, w, 16)
+    ctx.fillRect(x + pitch * 0.18, 0, w, 16)
   }
   const tex = new THREE.CanvasTexture(canvas)
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping

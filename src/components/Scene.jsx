@@ -17,6 +17,7 @@ import DayClouds from './DayClouds'
 import Stairs from './Accessories/Stairs'
 import LedStrip from './Accessories/LedStrip'
 import Cover from './Accessories/Cover'
+import OverflowFlow from './Accessories/Overflow'
 import HeatPump from './Accessories/HeatPump'
 import CounterCurrent from './Accessories/CounterCurrent'
 import Jet from './Accessories/Jets'
@@ -480,6 +481,9 @@ export default function Scene() {
           jet={jetFlow}
         />
         <Pool length={length} width={width} depth={depth} material={material} shape={shape} />
+        {shape === 'Infinity' && (
+          <OverflowFlow length={length} width={width} waterY={waterLevelFor(shape)} />
+        )}
         <Caustics length={length} width={width} depth={depth} shape={shape} led={led} jet={jetFlow} />
         <Water
           length={length}

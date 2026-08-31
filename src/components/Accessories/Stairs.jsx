@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from 'react'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { WALL_THICKNESS } from '../../data/config'
+import { makePerforatedTreadMaps } from '../../three/textures'
 
 /**
  * Ecktreppe: römische Viertelkreis-Stufen, 3 Draw-Calls.
@@ -72,10 +73,211 @@ function makeFloatTreadShape(depth, width) {
   return s
 }
 
-function boxAt(sx, sy, sz, x, y, z) {
-  const g = new THREE.BoxGeometry(sx, sy, sz)
-  g.translate(x, y, z)
-  return g
+function makeFloatTreadFrame(depth, width, inset = 0.026) {
+  const outer = makeFloatTreadShape(depth, width)
+  const hw = (width - inset * 2) / 2
+  const x0 = inset + 0.004
+  const x1 = depth - inset
+  const hole = new THREE.Path()
+  hole.moveTo(x0, -hw)
+  hole.lineTo(x0, hw)
+  hole.lineTo(x1, hw)
+  hole.lineTo(x1, -hw)
+  hole.closePath()
+  outer.holes.push(hole)
+  return outer
+}
+
+const FLOAT_FLOOR_H = 0.016
+const FLOAT_FRAME_H = 0.034
+const FLOAT_TREAD_H = FLOAT_FLOOR_H + FLOAT_FRAME_H
+const FLOAT_RISE = 0.25
+
+const CHROME_PLATE = {
+  color: '#f3f7f9',
+  metalness: 0.92,
+  roughness: 0.16,
+  envMapIntensity: 2.05,
+  clearcoat: 0.55,
+  clearcoatRoughness: 0.1,
+  emissive: '#3a6574',
+  emissiveIntensity: 0.38,
+}
+
+const CHROME_ARM = {
+  color: '#e4eef2',
+  metalness: 0.94,
+  roughness: 0.18,
+  envMapIntensity: 1.85,
+  clearcoat: 0.35,
+  clearcoatRoughness: 0.12,
+  emissive: '#2f5562',
+  emissiveIntensity: 0.22,
+}
+
+function applyMapRepeat(maps, rx, ry) {
+  Object.values(maps).forEach((tex) => {
+    if (tex?.repeat) tex.repeat.set(rx, ry)
+  })
+}
+
+function FloatTread({ depth, width, yBottom, z, maps, floor, frame }) {
+  const meshD = depth - 0.052
+  const meshW = width - 0.052
+  const wellD = meshD - 0.004
+  const wellW = meshW - 0.004
+  const cx = 0.012 + depth * 0.5
+  const floorTop = yBottom + FLOAT_FLOOR_H
+  const top = yBottom + FLOAT_TREAD_H
+
+  return (
+    <group>
+      <mesh geometry={floor} position={[0.012, yBottom, z]} castShadow receiveShadow>
+        <meshPhysicalMaterial {...CHROME_PLATE} roughness={0.22} />
+      </mesh>
+      <mesh geometry={frame} position={[0.012, floorTop, z]} castShadow receiveShadow>
+        <meshPhysicalMaterial {...CHROME_PLATE} />
+      </mesh>
+
+      <mesh position={[cx, floorTop + 0.0012, z]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[wellD, wellW]} />
+        <meshPhysicalMaterial
+          color="#0c4a56"
+          roughness={0.14}
+          metalness={0.18}
+          envMapIntensity={1.2}
+          emissive="#17808f"
+          emissiveIntensity={0.42}
+        />
+      </mesh>
+
+      <mesh
+        position={[cx, top - 0.0014, z]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        castShadow
+        receiveShadow
+        renderOrder={2}
+      >
+        <planeGeometry args={[meshD, meshW]} />
+        <meshPhysicalMaterial
+          {...maps}
+          color="#ffffff"
+          roughness={0.18}
+          metalness={0.95}
+          envMapIntensity={2.05}
+          clearcoat={0.45}
+          clearcoatRoughness={0.12}
+          emissive="#4a7382"
+          emissiveIntensity={0.14}
+          normalScale={[0.9, 0.9]}
+          alphaTest={0.45}
+          polygonOffset
+          polygonOffsetFactor={-1}
+          polygonOffsetUnits={-1}
+        />
+      </mesh>
+
+      <mesh position={[0.012 + depth - 0.026, top - 0.003, z]} castShadow>
+        <boxGeometry args={[0.018, 0.01, width * 0.92]} />
+        <meshPhysicalMaterial
+          color="#f6fafc"
+          metalness={0.95}
+          roughness={0.1}
+          envMapIntensity={2.2}
+          clearcoat={0.7}
+          emissive="#5a8490"
+          emissiveIntensity={0.4}
+        />
+      </mesh>
+
+      <mesh position={[0.012 + depth - 0.034, top - 0.012, z]} castShadow>
+        <boxGeometry args={[0.006, 0.0028, width * 0.68]} />
+        <meshStandardMaterial
+          color="#c5f6ff"
+          emissive="#7aecfa"
+          emissiveIntensity={0.55}
+          toneMapped={false}
+          roughness={0.2}
+        />
+      </mesh>
+
+      {[-1, 1].map((side) => {
+        const sz = z + side * width * 0.3
+        return (
+          <group key={side}>
+            <mesh position={[0.028, yBottom + FLOAT_TREAD_H * 0.42, sz]} rotation={[0, 0, Math.PI / 2]} castShadow>
+              <cylinderGeometry args={[0.011, 0.011, 0.07, 14]} />
+              <meshPhysicalMaterial {...CHROME_ARM} />
+            </mesh>
+            <mesh position={[0.11, yBottom + 0.007, sz]} castShadow>
+              <boxGeometry args={[0.18, 0.01, 0.034]} />
+              <meshPhysicalMaterial {...CHROME_ARM} roughness={0.22} />
+            </mesh>
+            <mesh position={[0.2, yBottom + 0.013, sz]} castShadow>
+              <boxGeometry args={[0.028, 0.008, 0.028]} />
+              <meshPhysicalMaterial {...CHROME_ARM} />
+            </mesh>
+          </group>
+        )
+      })}
+    </group>
+  )
+}
+
+function FloatingStair({ steps, poolLength, poolWidth, wall, waterY, t }) {
+  const maps = useMemo(() => makePerforatedTreadMaps(512, 12), [])
+  const span = wall === 'west' || wall === 'east' ? poolWidth - t * 2 : poolLength - t * 2
+  const width = Math.min(1.18, Math.max(0.78, span - 0.14))
+  const depth = 0.38
+  const z0 = -span / 2 + width / 2 + 0.07
+  const N = steps || 4
+  const topTread = waterY - 0.012
+
+  const floor = useMemo(() => {
+    const g = extrudeUp(makeFloatTreadShape(depth, width), FLOAT_FLOOR_H, 0.004)
+    g.computeVertexNormals()
+    return g
+  }, [depth, width])
+
+  const frame = useMemo(() => {
+    const g = extrudeUp(makeFloatTreadFrame(depth, width), FLOAT_FRAME_H, 0.007)
+    g.computeVertexNormals()
+    return g
+  }, [depth, width])
+
+  useEffect(() => {
+    const meshD = depth - 0.052
+    const meshW = width - 0.052
+    const pitch = 0.022
+    const holes = 12
+    applyMapRepeat(maps, meshD / (holes * pitch), meshW / (holes * pitch))
+  }, [maps, width, depth])
+
+  useEffect(
+    () => () => {
+      floor.dispose()
+      frame.dispose()
+      Object.values(maps).forEach((tex) => tex.dispose?.())
+    },
+    [maps, floor, frame],
+  )
+
+  return (
+    <group>
+      {Array.from({ length: N }, (_, i) => (
+        <FloatTread
+          key={i}
+          depth={depth}
+          width={width}
+          yBottom={topTread - FLOAT_TREAD_H - i * FLOAT_RISE}
+          z={z0}
+          maps={maps}
+          floor={floor}
+          frame={frame}
+        />
+      ))}
+    </group>
+  )
 }
 
 function makeWideTreadShape(depth, span, radius) {
@@ -98,8 +300,8 @@ function extrudeUp(shape, thickness, bevel = 0) {
     bevelEnabled: bevel > 0,
     bevelThickness: bevel,
     bevelSize: bevel,
-    bevelSegments: bevel > 0 ? 1 : 0,
-    curveSegments: 24,
+    bevelSegments: bevel > 0 ? 3 : 0,
+    curveSegments: 20,
     steps: 1,
   })
   g.rotateX(Math.PI / 2)
@@ -231,54 +433,6 @@ function Stairs({
     [eckGeos],
   )
 
-  const floatGeos = useMemo(() => {
-    if (type !== 'Schwebetreppe') return null
-    const N = steps || 4
-    const span = wall === 'west' || wall === 'east' ? poolWidth - t * 2 : poolLength - t * 2
-    const width = Math.min(1.14, Math.max(0.72, span - 0.14))
-    const depth = 0.36
-    const z0 = -span / 2 + width / 2 + 0.07
-    const rise = 0.255
-    const topTread = waterY - 0.018
-    const treads = []
-    const brackets = []
-    const leds = []
-    const grooves = []
-    for (let i = 0; i < N; i++) {
-      const yBottom = topTread - TREAD_H - i * rise
-      const tread = extrudeUp(makeFloatTreadShape(depth, width), TREAD_H, 0.004)
-      tread.translate(0.012, yBottom, z0)
-      treads.push(tread)
-      for (const side of [-1, 1]) {
-        const z = z0 + side * width * 0.31
-        brackets.push(boxAt(0.016, 0.078, 0.058, 0.01, yBottom + TREAD_H * 0.28, z))
-        brackets.push(boxAt(0.2, 0.013, 0.036, 0.118, yBottom - 0.007, z))
-        brackets.push(boxAt(0.028, 0.028, 0.028, 0.022, yBottom + TREAD_H * 0.28, z))
-      }
-      leds.push(boxAt(0.012, 0.007, width * 0.78, 0.012 + depth - 0.018, yBottom + 0.005, z0))
-      for (let k = 0; k < 3; k++) {
-        grooves.push(boxAt(0.0055, 0.0028, width * 0.62, 0.09 + k * 0.075, yBottom + TREAD_H + 0.001, z0))
-      }
-    }
-    return {
-      tread: mergeAndDispose(treads),
-      bracket: mergeAndDispose(brackets),
-      led: mergeAndDispose(leds),
-      groove: mergeAndDispose(grooves),
-    }
-  }, [type, steps, poolLength, poolWidth, waterY, wall, t])
-
-  useEffect(
-    () => () => {
-      if (!floatGeos) return
-      floatGeos.tread?.dispose()
-      floatGeos.bracket?.dispose()
-      floatGeos.led?.dispose()
-      floatGeos.groove?.dispose()
-    },
-    [floatGeos],
-  )
-
   if (eck) {
     if (!eckGeos?.body || !eckGeos?.tread) return null
     const pose = cornerPose(corner, poolLength, poolWidth, t)
@@ -302,27 +456,17 @@ function Stairs({
   const pose = (WALL_POSE[wall] || WALL_POSE.west)(poolLength, poolWidth, t)
   const span = wall === 'west' || wall === 'east' ? poolWidth - t * 2 : poolLength - t * 2
 
-  if (type === 'Schwebetreppe' && floatGeos?.tread) {
+  if (type === 'Schwebetreppe') {
     return (
       <group position={pose.position} rotation={pose.rotation}>
-        <mesh geometry={floatGeos.tread}>
-          <meshStandardMaterial {...TREAD_VIS} metalness={0.48} roughness={0.18} envMapIntensity={1.55} />
-        </mesh>
-        {floatGeos.bracket && (
-          <mesh geometry={floatGeos.bracket}>
-            <meshStandardMaterial {...bodyMat} />
-          </mesh>
-        )}
-        {floatGeos.groove && (
-          <mesh geometry={floatGeos.groove}>
-            <meshStandardMaterial color="#8a969e" roughness={0.48} metalness={0.5} />
-          </mesh>
-        )}
-        {floatGeos.led && (
-          <mesh geometry={floatGeos.led}>
-            <meshBasicMaterial color={LED} toneMapped={false} />
-          </mesh>
-        )}
+        <FloatingStair
+          steps={steps}
+          poolLength={poolLength}
+          poolWidth={poolWidth}
+          wall={wall}
+          waterY={waterY}
+          t={t}
+        />
       </group>
     )
   }

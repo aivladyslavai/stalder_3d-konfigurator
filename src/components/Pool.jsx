@@ -1,13 +1,15 @@
-import React, { useMemo, useEffect } from 'react'
+import React, { useMemo, useEffect, useLayoutEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { WALL_THICKNESS } from '../data/config'
-import { makePoolPanelTexture, makeGrateTexture } from '../three/textures'
+import { makePoolPanelTexture } from '../three/textures'
 import {
   roundedRectShape,
   cornerRadiusFor,
-  GRATE_WIDTH,
-  GRATE_GAP,
+  GRATE_PITCH,
+  GRATE_BAR_W,
+  GRATE_BAR_H,
   SKIMMER_COPING,
+  overflowGrateLayout,
 } from '../three/footprint'
 
 /**
@@ -21,56 +23,176 @@ import {
  */
 const PANEL_SIZE = 1.6 // Kantenlänge eines Auskleidungspaneels in Metern
 
-/** Überlaufrinne mit Edelstahlrost rund um das Becken. */
+const STEEL = {
+  color: '#f4f7f8',
+  metalness: 1,
+  roughness: 0.12,
+  envMapIntensity: 2.6,
+  clearcoat: 0.65,
+  clearcoatRoughness: 0.08,
+  emissive: '#3d4a52',
+  emissiveIntensity: 0.22,
+}
+
+const STEEL_FRAME = {
+  color: '#f7fafb',
+  metalness: 1,
+  roughness: 0.1,
+  envMapIntensity: 2.7,
+  clearcoat: 0.55,
+  clearcoatRoughness: 0.07,
+  emissive: '#3d4a52',
+  emissiveIntensity: 0.18,
+}
+
+function makeGrateBarGeometry(across) {
+  const w = GRATE_BAR_W
+  const h = GRATE_BAR_H
+  const r = Math.min(w, h) * 0.48
+  const shape = new THREE.Shape()
+  const x0 = -w / 2
+  const y0 = -h / 2
+  shape.moveTo(x0 + r, y0)
+  shape.lineTo(x0 + w - r, y0)
+  shape.quadraticCurveTo(x0 + w, y0, x0 + w, y0 + r)
+  shape.lineTo(x0 + w, y0 + h - r)
+  shape.quadraticCurveTo(x0 + w, y0 + h, x0 + w - r, y0 + h)
+  shape.lineTo(x0 + r, y0 + h)
+  shape.quadraticCurveTo(x0, y0 + h, x0, y0 + h - r)
+  shape.lineTo(x0, y0 + r)
+  shape.quadraticCurveTo(x0, y0, x0 + r, y0)
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: across,
+    bevelEnabled: false,
+    steps: 1,
+    curveSegments: 6,
+  })
+  geo.translate(0, 0, -across / 2)
+  geo.computeVertexNormals()
+  return geo
+}
+
+const _barDummy = new THREE.Object3D()
+
+function placeGrateBars(mesh, layout) {
+  if (!mesh?.instanceMatrix) return
+  const { outerL, innerW, zEdge, xEdge, barY, g } = layout
+  let i = 0
+  const rows = [
+    { span: outerL, axis: 'x', c: zEdge, rot: 0 },
+    { span: outerL, axis: 'x', c: -zEdge, rot: 0 },
+    { span: innerW, axis: 'z', c: xEdge, rot: Math.PI / 2 },
+    { span: innerW, axis: 'z', c: -xEdge, rot: Math.PI / 2 },
+  ]
+  for (const row of rows) {
+    const n = Math.max(4, Math.floor(row.span / GRATE_PITCH))
+    const used = n * GRATE_PITCH
+    const start = -used / 2 + GRATE_PITCH / 2
+    for (let k = 0; k < n; k++) {
+      const t = start + k * GRATE_PITCH
+      if (row.axis === 'x') _barDummy.position.set(t, barY, row.c)
+      else _barDummy.position.set(row.c, barY, t)
+      _barDummy.rotation.set(0, row.rot, 0)
+      _barDummy.scale.set(1, 1, 1)
+      _barDummy.updateMatrix()
+      mesh.setMatrixAt(i, _barDummy.matrix)
+      i += 1
+    }
+  }
+  mesh.count = i
+  mesh.instanceMatrix.needsUpdate = true
+}
+
+function grateBarCount(layout) {
+  return (
+    Math.max(4, Math.floor(layout.outerL / GRATE_PITCH)) * 2 +
+    Math.max(4, Math.floor(layout.innerW / GRATE_PITCH)) * 2
+  )
+}
+
+function GrateTrough({ along, g, floorY }) {
+  const wallH = Math.abs(floorY) - 0.01
+  const wallY = floorY / 2 - 0.003
+  return (
+    <group>
+      <mesh position={[0, floorY, 0]} receiveShadow>
+        <boxGeometry args={[along, 0.022, g]} />
+        <meshPhysicalMaterial
+          color="#07161c"
+          roughness={0.28}
+          metalness={0.22}
+          envMapIntensity={1.1}
+        />
+      </mesh>
+      <mesh position={[0, wallY, g / 2 - 0.006]} receiveShadow>
+        <boxGeometry args={[along, wallH, 0.011]} />
+        <meshPhysicalMaterial color="#142028" roughness={0.32} metalness={0.28} envMapIntensity={0.9} />
+      </mesh>
+      <mesh position={[0, wallY, -(g / 2 - 0.006)]} receiveShadow>
+        <boxGeometry args={[along, wallH, 0.011]} />
+        <meshPhysicalMaterial color="#10181e" roughness={0.4} metalness={0.18} envMapIntensity={0.7} />
+      </mesh>
+    </group>
+  )
+}
+
+function GrateFrame({ along, g, y }) {
+  const rail = 0.013
+  return (
+    <group>
+      <mesh position={[0, y + 0.003, g / 2 - rail / 2]} castShadow receiveShadow>
+        <boxGeometry args={[along, GRATE_BAR_H + 0.004, rail]} />
+        <meshPhysicalMaterial {...STEEL_FRAME} />
+      </mesh>
+      <mesh position={[0, y + 0.003, -(g / 2 - rail / 2)]} castShadow receiveShadow>
+        <boxGeometry args={[along, GRATE_BAR_H + 0.004, rail]} />
+        <meshPhysicalMaterial {...STEEL_FRAME} />
+      </mesh>
+    </group>
+  )
+}
+
+/** Überlaufrinne: echte Edelstahl-Lamellen + Rahmen, Wasser sieht man dazwischen. */
 function OverflowGrate({ length, width }) {
-  const grate = useMemo(() => makeGrateTexture(256, 16), [])
-  useEffect(() => () => grate.dispose(), [grate])
+  const meshRef = useRef()
+  const layout = useMemo(() => overflowGrateLayout(length, width), [length, width])
+  const count = grateBarCount(layout)
+  const barGeo = useMemo(
+    () => makeGrateBarGeometry(layout.g - 0.028),
+    [layout.g],
+  )
 
-  const g = GRATE_WIDTH
-  const gap = GRATE_GAP
-  const outerL = length + 2 * (g + gap)
-  const innerW = width + 2 * gap
-  const zEdge = width / 2 + gap + g / 2
-  const xEdge = length / 2 + gap + g / 2
+  useLayoutEffect(() => {
+    placeGrateBars(meshRef.current, layout)
+  }, [layout, count, barGeo])
 
-  // 16 Lamellen je Kachel, Kachel = 0.7 m ⇒ rund 4.4 cm Teilung
-  const long = useMemo(() => {
-    const m = grate.clone()
-    m.needsUpdate = true
-    m.repeat.set(outerL / 0.7, 1)
-    return m
-  }, [grate, outerL])
-  const short = useMemo(() => {
-    const m = grate.clone()
-    m.needsUpdate = true
-    m.repeat.set(innerW / 0.7, 1)
-    return m
-  }, [grate, innerW])
+  useEffect(
+    () => () => barGeo.dispose(),
+    [barGeo],
+  )
 
-  // Rostoberkante bündig mit der Terrasse (y = 0)
-  const y = -0.015
-  const bars = [
-    { key: 'n', pos: [0, y, -zEdge], rot: 0, size: [outerL, 0.03, g], map: long },
-    { key: 's', pos: [0, y, zEdge], rot: 0, size: [outerL, 0.03, g], map: long },
-    { key: 'w', pos: [-xEdge, y, 0], rot: Math.PI / 2, size: [innerW, 0.03, g], map: short },
-    { key: 'e', pos: [xEdge, y, 0], rot: Math.PI / 2, size: [innerW, 0.03, g], map: short },
+  const sides = [
+    { key: 'n', pos: [0, 0, -layout.zEdge], rot: 0, along: layout.outerL },
+    { key: 's', pos: [0, 0, layout.zEdge], rot: 0, along: layout.outerL },
+    { key: 'w', pos: [-layout.xEdge, 0, 0], rot: Math.PI / 2, along: layout.innerW },
+    { key: 'e', pos: [layout.xEdge, 0, 0], rot: Math.PI / 2, along: layout.innerW },
   ]
 
   return (
     <group>
-      {bars.map((b) => (
-        <group key={b.key} position={b.pos} rotation={[0, b.rot, 0]}>
-          {/* dunkle Rinne unter dem Rost */}
-          <mesh position={[0, -0.12, 0]}>
-            <boxGeometry args={[b.size[0], 0.2, g]} />
-            <meshStandardMaterial color="#1e242a" roughness={0.95} />
-          </mesh>
-          <mesh receiveShadow>
-            <boxGeometry args={b.size} />
-            {/* wenig metalness: sonst kommt die Farbe fast nur aus der
-                Reflexion und der Rost wirkt dunkel */}
-            <meshStandardMaterial map={b.map} metalness={0.4} roughness={0.42} envMapIntensity={1} />
-          </mesh>
+      <instancedMesh
+        ref={meshRef}
+        args={[barGeo, null, count]}
+        castShadow
+        receiveShadow
+        frustumCulled={false}
+      >
+        <meshPhysicalMaterial {...STEEL} />
+      </instancedMesh>
+      {sides.map((s) => (
+        <group key={s.key} position={s.pos} rotation={[0, s.rot, 0]}>
+          <GrateTrough along={s.along} g={layout.g} floorY={layout.floorY} />
+          <GrateFrame along={s.along} g={layout.g} y={layout.barY} />
         </group>
       ))}
     </group>

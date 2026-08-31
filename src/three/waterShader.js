@@ -13,6 +13,7 @@ uniform float uCornerR;
 uniform float uJetOn;
 uniform vec2 uJetOrigin;
 uniform vec2 uJetDir;
+uniform float uOverflow;
 varying vec2 vPoolXZ;
 varying vec3 vWaveN;
 
@@ -143,6 +144,26 @@ vec3 waterDisplace(vec2 xz, out vec3 normal) {
   float inside = max(0.0, -sdRoundBox(xz, uHalf, uCornerR));
   float meniscus = exp(-inside * 52.0) * 0.008;
   float edgeRipple = sin(inside * 62.0 - uTime * 1.75) * exp(-inside * 15.0) * 0.0018;
+
+  if (uOverflow > 0.5) {
+    // Überlauf: ruhige Mitte, Strom zur Kante, Abfluss am Wehr.
+    float edge = exp(-inside * 4.6);
+    float amp = mix(0.82, 0.22, smoothstep(0.04, 0.9, inside));
+    disp.y *= amp;
+    disp.xz *= mix(1.0, 0.42, smoothstep(0.15, 1.0, inside));
+    nrm.xz *= mix(1.15, 0.45, smoothstep(0.08, 0.85, inside));
+    meniscus = -exp(-inside * 20.0) * 0.0065;
+    float rings = sin(inside * 40.0 + uTime * 5.4) * exp(-inside * 4.4) * 0.0036;
+    rings += sin(inside * 18.0 + uTime * 2.7) * exp(-inside * 2.8) * 0.0028;
+    float ang = atan(xz.y, xz.x);
+    rings *= 0.78 + 0.22 * sin(ang * 4.0 + uTime * 0.65);
+    edgeRipple = rings * 1.35;
+    vec2 dEdge = uHalf - abs(xz);
+    vec2 away = dEdge.x < dEdge.y ? vec2(sign(xz.x), 0.0) : vec2(0.0, sign(xz.y));
+    disp.xz += away * edge * 0.0055;
+    nrm.xz += away * edge * 0.42;
+    disp.y += (fbm3(xz * 9.5 + vec2(uTime * 0.35, -uTime * 0.22)) - 0.5) * edge * 0.004;
+  }
   disp.y += meniscus + edgeRipple;
 
   float cap = (fbm3(xz * 12.0 + vec2(uTime * 0.1, -uTime * 0.065)) - 0.5) * 0.00135;
@@ -190,6 +211,7 @@ export function injectWaterWaves(shader) {
   shader.uniforms.uJetOn = shader.uniforms.uJetOn || { value: 0 }
   shader.uniforms.uJetOrigin = shader.uniforms.uJetOrigin || { value: new THREE.Vector2() }
   shader.uniforms.uJetDir = shader.uniforms.uJetDir || { value: new THREE.Vector2(1, 0) }
+  shader.uniforms.uOverflow = shader.uniforms.uOverflow || { value: 0 }
 
   shader.vertexShader = prependWaterGLSL(shader.vertexShader)
   if (!shader.vertexShader.includes('waveOff = waterDisplace')) {
@@ -234,6 +256,16 @@ export function injectWaterWaves(shader) {
         float inside = max(0.0, -sdRoundBox(vPoolXZ, uHalf, uCornerR));
         vec2 away = normalize(vPoolXZ + vec2(1e-5));
         nWorld = normalize(mix(nWorld, normalize(vec3(-away.x, 1.8, -away.y)), exp(-inside * 48.0) * 0.14));
+        if (uOverflow > 0.5) {
+          vec2 dEdge = uHalf - abs(vPoolXZ);
+          vec2 lip = dEdge.x < dEdge.y ? vec2(sign(vPoolXZ.x), 0.0) : vec2(0.0, sign(vPoolXZ.y));
+          float edge = exp(-inside * 5.2);
+          nWorld = normalize(mix(nWorld, normalize(vec3(lip.x, 0.55, lip.y)), edge * 0.38));
+          vec2 flowUv = vec2(vPoolXZ.x * 3.4 + lip.y * uTime * 1.6, vPoolXZ.y * 3.4 - lip.x * uTime * 1.6);
+          vec3 microEdge = waterMicroNormal(flowUv);
+          nWorld = normalize(mix(nWorld, microEdge, edge * 0.32));
+          roughnessFactor = mix(roughnessFactor, 0.02, edge * 0.55);
+        }
         normal = normalize(transformDirection(nWorld, viewMatrix));
         roughnessFactor = mix(roughnessFactor, 0.12, jetFoamAmt * 0.28);
       }

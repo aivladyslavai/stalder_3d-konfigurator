@@ -39,13 +39,12 @@ function clampToRoundedRect(x, z, hx, hz, r) {
   return { x: sx * bx + dx * k, z: sz * bz + dz * k }
 }
 
-function makeWaterGeometry(length, width, radius, wall, dense = false) {
+function makeWaterGeometry(length, width, radius, wall, dens = 12) {
   const lw = Math.max(0.4, length - wall)
   const ww = Math.max(0.4, width - wall)
   const hx = lw / 2
   const hz = ww / 2
   const r = Math.max(0, Math.min(radius - wall, hx - 0.02, hz - 0.02))
-  const dens = dense ? 32 : 12
   const segX = Math.max(32, Math.min(160, Math.ceil(lw * dens)))
   const segZ = Math.max(20, Math.min(100, Math.ceil(ww * dens)))
   const g = new THREE.PlaneGeometry(lw, ww, segX, segZ)
@@ -62,7 +61,7 @@ function makeWaterGeometry(length, width, radius, wall, dense = false) {
   return g
 }
 
-const WAVE_KEY = 'wj16'
+const WAVE_KEY = 'wj17'
 
 function patchWaveMaterial(mat) {
   if (!mat || mat.userData.waveKey === WAVE_KEY) return
@@ -109,10 +108,10 @@ function Water({
   const hz = (width - waterCut) / 2
   const cornerR = Math.max(0, r - t)
 
-  const dense = Boolean(jet)
+  const dens = jet ? 32 : isInfinity ? 20 : 12
   const geometry = useMemo(
-    () => makeWaterGeometry(length, width, r, waterCut, dense),
-    [length, width, r, waterCut, dense],
+    () => makeWaterGeometry(length, width, r, waterCut, dens),
+    [length, width, r, waterCut, dens],
   )
 
   const skyEnv = useMemo(() => {
@@ -178,12 +177,14 @@ function Water({
         shader.uniforms.uHalf.value.set(hx, hz)
         shader.uniforms.uCornerR.value = cornerR
       }
+      if (shader?.uniforms?.uOverflow) {
+        shader.uniforms.uOverflow.value = isInfinity ? 1 : 0
+      }
       if (shader?.uniforms?.uJetOn) {
         const flow = jetRef.current
-        const zOff = isInfinity ? t / 2 : 0
         shader.uniforms.uJetOn.value = flow ? 1 : 0
         if (flow) {
-          shader.uniforms.uJetOrigin.value.set(flow.origin[0], flow.origin[1] - zOff)
+          shader.uniforms.uJetOrigin.value.set(flow.origin[0], flow.origin[1])
           shader.uniforms.uJetDir.value.set(flow.dir[0], flow.dir[1])
         }
       }
@@ -195,7 +196,6 @@ function Water({
     setFloatsVisible(true)
   }, [camera])
 
-  const zOffset = isInfinity ? t / 2 : 0
   const thickness = Math.min(depth, 2.2) * 0.32
   const absorption = led ? 0.85 : envMode === 'day' ? 0.62 : 0.9
 
@@ -203,7 +203,7 @@ function Water({
     <mesh
       ref={meshRef}
       geometry={geometry}
-      position={[0, baseY, zOffset]}
+      position={[0, baseY, 0]}
       raycast={pickable ? undefined : () => {}}
     >
       <MeshTransmissionMaterial
@@ -214,7 +214,7 @@ function Water({
         transmission={1}
         thickness={thickness}
         ior={1.333}
-        roughness={0.038}
+        roughness={isInfinity ? 0.026 : 0.038}
         metalness={0}
         chromaticAberration={0.012}
         anisotropicBlur={0.01}

@@ -10,7 +10,7 @@ export function cornerRadiusFor(shape) {
 export function waterLevelFor(shape) {
   switch (shape) {
     case 'Infinity':
-      return -0.025 // randvoll bis zur Überlaufkante
+      return -0.004 // randvoll, fliesst über die Wehrkante
     case 'Skimmer':
       return -0.02
     default:
@@ -21,6 +21,26 @@ export function waterLevelFor(shape) {
 // Überlaufrinne: Rostbreite und Fuge zum Beckenrand (m)
 export const GRATE_WIDTH = 0.2
 export const GRATE_GAP = 0.02
+export const GRATE_PITCH = 0.05
+export const GRATE_BAR_W = 0.02
+export const GRATE_BAR_H = 0.016
+
+export function overflowGrateLayout(length, width) {
+  const g = GRATE_WIDTH
+  const gap = GRATE_GAP
+  return {
+    g,
+    gap,
+    outerL: length + 2 * (g + gap),
+    innerW: width + 2 * gap,
+    zEdge: width / 2 + gap + g / 2,
+    xEdge: length / 2 + gap + g / 2,
+    barY: -0.001,
+    waterY: -0.024,
+    floorY: -0.118,
+    poolHalf: [length / 2, width / 2],
+  }
+}
 
 /** Sichtbare dunkle Linie zwischen Terrasse und Wasser beim Skimmer (m). */
 export const SKIMMER_COPING = 0.012
