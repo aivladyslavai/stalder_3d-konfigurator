@@ -25,7 +25,7 @@ function Lounger({ position, rotation = 0 }) {
       {[-0.29, 0.29].map((x) =>
         [-0.78, 0.78].map((z) => (
           <mesh key={`${x}${z}`} position={[x, 0.09, z]} castShadow>
-            <cylinderGeometry args={[0.022, 0.022, 0.18, 10]} />
+            <cylinderGeometry args={[0.022, 0.022, 0.18, 6]} />
             <meshStandardMaterial {...FRAME} />
           </mesh>
         )),
@@ -62,15 +62,15 @@ function SideTable({ position }) {
   return (
     <group position={position}>
       <mesh position={[0, 0.38, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.25, 0.25, 0.04, 28]} />
+        <cylinderGeometry args={[0.25, 0.25, 0.04, 16]} />
         <meshStandardMaterial color="#8d9297" roughness={0.45} metalness={0.5} />
       </mesh>
       <mesh position={[0, 0.19, 0]} castShadow>
-        <cylinderGeometry args={[0.045, 0.06, 0.38, 16]} />
+        <cylinderGeometry args={[0.045, 0.06, 0.38, 10]} />
         <meshStandardMaterial color="#6f757a" roughness={0.5} metalness={0.45} />
       </mesh>
       <mesh position={[0, 0.015, 0]} receiveShadow>
-        <cylinderGeometry args={[0.19, 0.21, 0.03, 20]} />
+        <cylinderGeometry args={[0.19, 0.21, 0.03, 14]} />
         <meshStandardMaterial color="#5c6166" roughness={0.6} metalness={0.4} />
       </mesh>
     </group>
@@ -173,11 +173,11 @@ function FloatingSwan({ position, rotationY, height, jet = null, poolLength = 5,
     <group ref={ref} position={position} rotation={[0, rotationY, 0]} renderOrder={8}>
       <GltfProp url="/models/float.glb" height={height} sink={0.072} vinyl layer={FLOAT_LAYER} merge castShadow />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]} renderOrder={7}>
-        <circleGeometry args={[0.22, 24]} />
+        <circleGeometry args={[0.22, 16]} />
         <meshBasicMaterial color="#082028" transparent opacity={0.2} depthWrite={false} />
       </mesh>
       <mesh ref={foamRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 0]} renderOrder={9}>
-        <ringGeometry args={[0.15, 0.3, 40]} />
+        <ringGeometry args={[0.15, 0.3, 20]} />
         <meshBasicMaterial
           color="#e4f6ff"
           transparent

@@ -34,7 +34,7 @@ const fragmentShader = /* glsl */ `
   uniform vec2 uJetDir;
 
   #define TAU 6.28318530718
-  #define ITER 5
+  #define ITER 4
 
   float caustic(vec2 uv, float time) {
     vec2 p = mod(uv * TAU, TAU) - 250.0;
@@ -76,8 +76,7 @@ const fragmentShader = /* glsl */ `
     warp += uJetDir * jet * 0.045;
     float a = caustic(vUv * uScale + warp, t);
     float b = caustic(vUv * uScale * 1.85 + 3.7 + warp.yx, t * 0.73);
-    float c = caustic(vUv * uScale * 3.4 + vec2(5.1, -2.4), t * 1.11);
-    float v = clamp(a * 0.55 + b * 0.38 + c * 0.22, 0.0, 1.0);
+    float v = clamp(a * 0.6 + b * 0.4, 0.0, 1.0);
     v = pow(v, 1.12);
     v *= 1.0 + jet * 1.25;
     v += jet * 0.14;

@@ -61,7 +61,7 @@ function DayClouds({ dusk = false }) {
   return (
     <group>
       <mesh renderOrder={-20} frustumCulled={false}>
-        <sphereGeometry args={[85, 16, 12]} />
+        <sphereGeometry args={[85, 10, 8]} />
         <meshBasicMaterial
           color={dusk ? '#243044' : '#5aa3d4'}
           side={THREE.BackSide}

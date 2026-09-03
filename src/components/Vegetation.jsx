@@ -44,7 +44,7 @@ const DATES = [
 
 function buildHedge() {
   const pts = []
-  const n = 56
+  const n = 36
   for (let i = 0; i <= n; i++) {
     const a = (i / n) * Math.PI * 2
     const r = HEDGE_RADIUS + Math.sin(i * 0.7) * 0.12
