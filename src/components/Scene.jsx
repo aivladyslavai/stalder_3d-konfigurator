@@ -58,7 +58,7 @@ function lighting(scene, time) {
   }
   return {
     env: 'park',
-    envIntensity: 0.4,
+      envIntensity: 0.52,
     bg: '#8ebdd8',
     sky: false,
     fog: ['#c5d8e8', 42, 95],
@@ -418,7 +418,7 @@ export default function Scene() {
   return (
     <Canvas
       shadows
-      dpr={[1, 1.5]}
+      dpr={[1, 1.75]}
       performance={{ min: 0.75, debounce: 200 }}
       camera={{ position: [11, 6, 11], fov: 44 }}
       gl={{
@@ -435,7 +435,7 @@ export default function Scene() {
         <Sky turbidity={L.sky.turbidity} rayleigh={L.sky.rayleigh} mieCoefficient={0.005} mieDirectionalG={0.85} sunPosition={L.sky.sun} />
       )}
 
-      <SoftShadows size={18} samples={8} focus={0.75} />
+      <SoftShadows size={16} samples={12} focus={0.68} />
       <EnableSceneLayers>
         <ambientLight intensity={L.ambient} />
         <hemisphereLight args={['#d7e6f2', '#7a8a62', L.hemi]} />
@@ -444,8 +444,8 @@ export default function Scene() {
           intensity={L.sun.intensity}
           color={L.sun.color}
           castShadow
-          shadow-mapSize-width={1536}
-          shadow-mapSize-height={1536}
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
           shadow-bias={-0.0002}
           shadow-camera-left={outdoor ? -20 : -16}
           shadow-camera-right={outdoor ? 20 : 16}

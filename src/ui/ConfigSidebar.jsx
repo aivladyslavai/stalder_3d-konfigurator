@@ -106,18 +106,34 @@ function DimensionSlider({ dimKey, value, onChange }) {
   )
 }
 
-function RowBtn({ active, onClick, title, hint }) {
+function RobotThumb() {
+  return (
+    <svg viewBox="0 0 56 36" className="h-9 w-14 shrink-0" aria-hidden>
+      <rect x="8" y="10" width="34" height="14" rx="5" fill="#1c242e" />
+      <rect x="12" y="8" width="26" height="7" rx="3" fill="#4a5c68" opacity="0.85" />
+      <path d="M20 8c0-5 8-5 8 0" fill="none" stroke="#c5d2da" strokeWidth="1.6" />
+      <rect x="6" y="22" width="38" height="6" rx="3" fill="#121416" />
+      <circle cx="44" cy="17" r="2.2" fill="#5ad4ff" />
+      <rect x="14" y="12" width="18" height="2" rx="1" fill="#96917E" />
+    </svg>
+  )
+}
+
+function RowBtn({ active, onClick, title, hint, thumb }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-start justify-between gap-3 border px-3 py-2.5 text-left text-sm transition-colors ${
+      className={`flex w-full items-center justify-between gap-3 border px-3 py-2.5 text-left text-sm transition-colors ${
         active ? 'border-stalder-ink bg-stalder-ink/[0.04]' : 'border-gray-200 hover:border-gray-300'
       }`}
     >
-      <span>
-        <span className="block font-medium text-gray-900">{title}</span>
-        {hint && <span className="mt-0.5 block text-[11px] text-gray-500">{hint}</span>}
+      <span className="flex min-w-0 items-center gap-3">
+        {thumb}
+        <span>
+          <span className="block font-medium text-gray-900">{title}</span>
+          {hint && <span className="mt-0.5 block text-[11px] text-gray-500">{hint}</span>}
+        </span>
       </span>
     </button>
   )
@@ -308,6 +324,8 @@ export default function ConfigSidebar() {
                 s.startPlacing('robotX60')
               }}
               title="Poolroboter"
+              hint="Automatischer Bodenreiniger"
+              thumb={<RobotThumb />}
             />
           </div>
         </Accordion>
