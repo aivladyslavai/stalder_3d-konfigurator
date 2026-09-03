@@ -28,6 +28,7 @@ import { usePoolConfig, getPoolMaterial } from '../hooks/usePoolConfig'
 import { visualShapeForSystem, findStair } from '../data/config'
 import { jetFlowFromPlacement, resolveSnap } from '../three/placement'
 import { waterLevelFor } from '../three/footprint'
+import DimensionLabels from './DimensionLabels'
 import { FLOAT_LAYER, SCENERY_LAYER, applyLayer } from '../three/layers'
 
 function lighting(scene, time) {
@@ -376,6 +377,7 @@ export default function Scene() {
   const placements = usePoolConfig((s) => s.placements)
   const placing = usePoolConfig((s) => s.placing)
   const topView = usePoolConfig((s) => s.topView)
+  const showDimensions = usePoolConfig((s) => s.showDimensions)
   const [coverBlocking, setCoverBlocking] = useState(false)
 
   const material = useMemo(
@@ -468,6 +470,7 @@ export default function Scene() {
             />
           )}
           <Deck length={length} width={width} shape={shape} deck={deck} margin={deckMargin} />
+          {showDimensions && <DimensionLabels length={length} width={width} shape={shape} />}
           {outdoor && <Vegetation timeOfDay={timeOfDay} />}
         </Scenery>
         {!outdoor && <Indoor poolLength={length} poolWidth={width} />}

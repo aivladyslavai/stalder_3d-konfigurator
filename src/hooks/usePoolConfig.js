@@ -124,6 +124,7 @@ export function listSelectedLines(state) {
 export const usePoolConfig = create((set, get) => ({
   showLeadForm: false,
   topView: false,
+  showDimensions: false,
 
   type: 'Chromstahl',
   poolSystem: 'Skimmer',
@@ -153,6 +154,7 @@ export const usePoolConfig = create((set, get) => ({
   openLeadForm: () => set({ showLeadForm: true }),
   closeLeadForm: () => set({ showLeadForm: false }),
   setTopView: (topView) => set({ topView }),
+  setShowDimensions: (showDimensions) => set({ showDimensions }),
 
   setType: (type) => {
     const stair = ensureValidStair(type, get().stair)

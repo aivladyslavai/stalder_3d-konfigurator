@@ -13,6 +13,8 @@ export default function App() {
   const cancelPlacing = usePoolConfig((s) => s.cancelPlacing)
   const topView = usePoolConfig((s) => s.topView)
   const setTopView = usePoolConfig((s) => s.setTopView)
+  const showDimensions = usePoolConfig((s) => s.showDimensions)
+  const setShowDimensions = usePoolConfig((s) => s.setShowDimensions)
   const showLeadForm = usePoolConfig((s) => s.showLeadForm)
   const closeLeadForm = usePoolConfig((s) => s.closeLeadForm)
 
@@ -35,6 +37,28 @@ export default function App() {
               className="pointer-events-auto border-2 border-stalder-ink bg-stalder-paper/90 px-3 py-1.5 text-[11px] font-bold uppercase tracking-brand text-stalder-ink backdrop-blur"
             >
               {topView ? 'Perspektive' : 'Top Ansicht'}
+            </button>
+            <button
+              type="button"
+              aria-pressed={showDimensions}
+              onClick={() => setShowDimensions(!showDimensions)}
+              className={`pointer-events-auto flex items-center gap-2 border-2 border-stalder-ink px-3 py-1.5 text-[11px] font-bold tracking-brand backdrop-blur ${
+                showDimensions
+                  ? 'bg-stalder-ink text-stalder-paper'
+                  : 'bg-stalder-paper/90 text-stalder-ink'
+              }`}
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden>
+                <g transform="rotate(-42 12 12)">
+                  <rect x="3" y="10.2" width="18" height="4.6" stroke="currentColor" strokeWidth="1.7" />
+                  <path
+                    d="M6 10.2v4.6M8.6 10.2v2.4M11.2 10.2v4.6M13.8 10.2v2.4M16.4 10.2v4.6M19 10.2v2.4"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  />
+                </g>
+              </svg>
+              Masse
             </button>
           </div>
 
