@@ -8,22 +8,20 @@ export function RadioCard({ active, onClick, title, desc, children }) {
     <button
       type="button"
       onClick={onClick}
-      className={`relative w-full rounded-lg border-2 p-4 text-left transition-all ${
-        active
-          ? 'border-[#32B4E6] bg-[#32B4E6]/10 shadow-sm'
-          : 'border-gray-200 bg-white hover:border-gray-300'
+      className={`relative w-full border-2 p-4 text-left transition-all ${
+        active ? 'border-stalder-ink bg-stalder-ink/[0.04]' : 'border-gray-200 bg-white hover:border-gray-300'
       }`}
     >
       <div className="flex items-start gap-3">
         <span
           className={`mt-0.5 flex h-4 w-4 flex-none items-center justify-center rounded-full border-2 ${
-            active ? 'border-[#32B4E6]' : 'border-gray-300'
+            active ? 'border-stalder-ink' : 'border-gray-300'
           }`}
         >
-          {active && <span className="h-2 w-2 rounded-full bg-[#32B4E6]" />}
+          {active && <span className="h-2 w-2 rounded-full bg-stalder-ink" />}
         </span>
         <span className="min-w-0">
-          <span className="block text-sm font-semibold text-gray-900">{title}</span>
+          <span className="block text-sm font-semibold text-stalder-ink">{title}</span>
           {desc && <span className="mt-1 block text-xs leading-snug text-gray-500">{desc}</span>}
           {children}
         </span>
@@ -40,15 +38,13 @@ export function CheckCard({ active, onClick, title, desc, icon }) {
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-start gap-3 rounded-lg border-2 p-4 text-left transition-all ${
-        active
-          ? 'border-[#32B4E6] bg-[#32B4E6]/10 shadow-sm'
-          : 'border-gray-200 bg-white hover:border-gray-300'
+      className={`flex w-full items-start gap-3 border-2 p-4 text-left transition-all ${
+        active ? 'border-stalder-ink bg-stalder-ink/[0.04]' : 'border-gray-200 bg-white hover:border-gray-300'
       }`}
     >
       <span
-        className={`mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded border-2 ${
-          active ? 'border-[#32B4E6] bg-[#32B4E6] text-white' : 'border-gray-300 bg-white'
+        className={`mt-0.5 flex h-5 w-5 flex-none items-center justify-center border-2 ${
+          active ? 'border-stalder-ink bg-stalder-ink text-white' : 'border-gray-300 bg-white'
         }`}
       >
         {active && (
@@ -58,7 +54,7 @@ export function CheckCard({ active, onClick, title, desc, icon }) {
         )}
       </span>
       <span className="min-w-0">
-        <span className="block text-sm font-semibold text-gray-900">{title}</span>
+        <span className="block text-sm font-semibold text-stalder-ink">{title}</span>
         {desc && <span className="mt-1 block text-xs leading-snug text-gray-500">{desc}</span>}
       </span>
     </button>

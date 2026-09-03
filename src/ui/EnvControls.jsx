@@ -19,7 +19,7 @@ function Segmented({ options, value, onChange }) {
           key={o.id}
           onClick={() => onChange(o.id)}
           className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-            value === o.id ? 'bg-[#002B6F] text-white' : 'text-gray-600 hover:text-gray-900'
+            value === o.id ? 'bg-stalder-ink text-white' : 'text-gray-600 hover:text-gray-900'
           }`}
         >
           {o.label}
@@ -43,19 +43,19 @@ export default function EnvControls() {
     <div className="pointer-events-auto absolute right-4 top-4 z-10 w-60 rounded-xl border border-white/40 bg-white/75 p-3 shadow-lg backdrop-blur-md">
       <div className="space-y-3">
         <div>
-          <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#32B4E6]">Umgebung</div>
+          <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-stalder-taupe">Umgebung</div>
           <Segmented options={SCENE_OPTIONS} value={scene} onChange={setScene} />
         </div>
 
         {scene === 'outdoor' && (
           <div>
-            <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#32B4E6]">Tageszeit</div>
+            <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-stalder-taupe">Tageszeit</div>
             <Segmented options={TIME_OPTIONS} value={timeOfDay} onChange={setTimeOfDay} />
           </div>
         )}
 
         <div>
-          <div className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-[#32B4E6]">Bodenbelag</div>
+          <div className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-stalder-taupe">Bodenbelag</div>
           <div className="grid grid-cols-5 gap-1.5">
             {DECK_MATERIALS.map((m) => (
               <button
@@ -63,7 +63,7 @@ export default function EnvControls() {
                 onClick={() => setDeck(m.id)}
                 title={m.label}
                 className={`h-8 w-full rounded-md border-2 transition-all ${
-                  deck === m.id ? 'border-[#32B4E6] ring-2 ring-[#32B4E6]/30' : 'border-white/60'
+                  deck === m.id ? 'border-stalder-ink ring-2 ring-stalder-ink/20' : 'border-white/60'
                 }`}
                 style={{ background: SWATCH_BG[m.id] }}
               />

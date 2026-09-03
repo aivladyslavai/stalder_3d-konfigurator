@@ -4,24 +4,24 @@ import { usePoolConfig } from '../../hooks/usePoolConfig'
 function Field({ label, required, type = 'text', value, onChange }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-gray-600">
-        {label} {required && <span className="text-[#32B4E6]">*</span>}
+      <span className="mb-1 block text-xs font-medium uppercase tracking-brand text-stalder-muted">
+        {label} {required && <span className="text-stalder-taupe">*</span>}
       </span>
       <input
         type={type}
         required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#32B4E6] focus:ring-1 focus:ring-[#32B4E6]/30"
+        className="w-full border border-stalder-line bg-stalder-paper px-3 py-2 text-sm outline-none focus:border-stalder-ink"
       />
     </label>
   )
 }
 
 const TRUST = [
-  { title: 'Swiss Quality', desc: 'Höchste Qualität und Präzision.' },
-  { title: 'Persönliche Beratung', desc: 'Individuelle Beratung durch unsere Experten.' },
-  { title: 'Custom Engineering', desc: 'Massgefertigte Lösungen für Ihr Projekt.' },
+  { title: 'Ostschweiz', desc: 'Ihr Pool-Experte in der Region St. Gallen, Zürich und Schaffhausen.' },
+  { title: 'Persönliche Beratung', desc: 'Von der Planung bis zur Inbetriebnahme an Ihrer Seite.' },
+  { title: 'Qualität', desc: 'Polyfaser, PPool® und Chromstahl — passend zu Ihrem Garten.' },
 ]
 
 export default function LeadForm() {
@@ -36,9 +36,9 @@ export default function LeadForm() {
 
   if (sent) {
     return (
-      <div className="rounded-lg bg-green-50 p-6 text-center">
-        <div className="text-lg font-semibold text-gray-900">Vielen Dank, {lead.firstName || 'für Ihre Anfrage'}!</div>
-        <p className="mt-1 text-sm text-gray-600">
+      <div className="bg-[#f4f3f0] p-6 text-center">
+        <div className="text-lg font-semibold text-stalder-ink">Vielen Dank, {lead.firstName || 'für Ihre Anfrage'}!</div>
+        <p className="mt-1 text-sm text-stalder-muted">
           Wir haben Ihre Konfiguration erhalten und melden uns in Kürze persönlich bei Ihnen.
         </p>
       </div>
@@ -55,31 +55,28 @@ export default function LeadForm() {
         <Field label="PLZ" value={lead.zip} onChange={(v) => setLead({ zip: v })} />
       </div>
       <label className="block">
-        <span className="mb-1 block text-xs font-medium text-gray-600">Nachricht</span>
+        <span className="mb-1 block text-xs font-medium uppercase tracking-brand text-stalder-muted">Nachricht</span>
         <textarea
           rows={3}
           value={lead.message}
           onChange={(e) => setLead({ message: e.target.value })}
-          className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#32B4E6] focus:ring-1 focus:ring-[#32B4E6]/30"
+          className="w-full border border-stalder-line bg-stalder-paper px-3 py-2 text-sm outline-none focus:border-stalder-ink"
         />
       </label>
 
-      <button
-        type="submit"
-        className="rounded-full bg-[#32B4E6] px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1f9fd1]"
-      >
+      <button type="submit" className="btn-stalder w-auto px-8">
         Offerte anfordern
       </button>
 
-      <div className="grid grid-cols-1 gap-4 border-t border-gray-100 pt-5 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 border-t border-stalder-line pt-5 sm:grid-cols-3">
         {TRUST.map((t) => (
           <div key={t.title} className="text-center">
-            <div className="text-sm font-semibold text-[#002B6F]">{t.title}</div>
-            <div className="mt-0.5 text-xs text-gray-500">{t.desc}</div>
+            <div className="text-sm font-bold uppercase tracking-wide text-stalder-taupe">{t.title}</div>
+            <div className="mt-0.5 text-xs text-stalder-muted">{t.desc}</div>
           </div>
         ))}
       </div>
-      <p className="text-[11px] text-gray-400">
+      <p className="text-[11px] text-stalder-muted">
         Ihre Daten werden vertraulich behandelt und nicht an Dritte weitergegeben.
       </p>
     </form>

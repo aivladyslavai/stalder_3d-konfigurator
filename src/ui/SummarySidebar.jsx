@@ -4,14 +4,14 @@ import { usePoolConfig, formatCHF, listSelectedLines } from '../hooks/usePoolCon
 
 function Pill({ options, value, onChange }) {
   return (
-    <div className="flex overflow-hidden rounded-full border border-gray-200 bg-white">
+    <div className="flex overflow-hidden border-2 border-stalder-ink bg-stalder-paper">
       {options.map((o) => (
         <button
           key={o.id}
           type="button"
           onClick={() => onChange(o.id)}
-          className={`flex-1 px-2 py-1.5 text-[11px] font-semibold ${
-            value === o.id ? 'bg-[#002B6F] text-white' : 'text-gray-600 hover:bg-gray-50'
+          className={`flex-1 px-2 py-1.5 text-[11px] font-bold uppercase tracking-brand ${
+            value === o.id ? 'bg-stalder-ink text-white' : 'text-stalder-muted hover:bg-[#f4f3f0]'
           }`}
         >
           {o.label}
@@ -39,8 +39,8 @@ export default function SummarySidebar() {
   }
 
   return (
-    <aside className="flex h-full min-h-0 w-full flex-col border-l border-gray-100 bg-white lg:w-[280px] lg:flex-none">
-      <div className="space-y-2 border-b border-gray-100 px-4 py-3">
+    <aside className="flex h-full min-h-0 w-full flex-col border-l border-stalder-line bg-stalder-paper lg:w-[280px] lg:flex-none">
+      <div className="space-y-2 border-b border-stalder-line px-4 py-3">
         <Pill options={TIME_OPTIONS} value={s.timeOfDay} onChange={s.setTimeOfDay} />
         <Pill
           options={SCENE_OPTIONS.map((o) => ({ id: o.id, label: o.id === 'outdoor' ? 'Aussen' : 'Innen' }))}
@@ -54,7 +54,7 @@ export default function SummarySidebar() {
               type="button"
               title={m.label}
               onClick={() => s.setDeck(m.id)}
-              className={`h-7 rounded border-2 ${s.deck === m.id ? 'border-[#32B4E6]' : 'border-gray-200'}`}
+              className={`h-7 border-2 ${s.deck === m.id ? 'border-stalder-ink' : 'border-gray-200'}`}
               style={{ background: m.id === 'wood' ? '#b6854f' : m.color }}
             />
           ))}
@@ -62,7 +62,7 @@ export default function SummarySidebar() {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-        <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-gray-400">Ausgewählt</div>
+        <div className="kicker mb-2">Ausgewählt</div>
         <ul className="space-y-1.5">
           {lines.map((line) => (
             <li key={line.id} className="flex items-start justify-between gap-2 text-xs text-gray-700">
@@ -81,18 +81,14 @@ export default function SummarySidebar() {
         </ul>
       </div>
 
-      <div className="border-t border-gray-100 px-4 py-4">
-        <div className="text-[11px] uppercase tracking-wide text-gray-500">Geschätzte Kosten exkl. MwSt.</div>
-        <div className="mt-1 text-3xl font-extrabold text-gray-900">{formatCHF(s.price)}</div>
-        <button
-          type="button"
-          onClick={openLeadForm}
-          className="mt-4 w-full rounded-md bg-[#002B6F] py-3 text-sm font-semibold text-white hover:bg-[#00224f]"
-        >
+      <div className="border-t border-stalder-line px-4 py-4">
+        <div className="text-[11px] uppercase tracking-wide text-stalder-muted">Geschätzte Kosten exkl. MwSt.</div>
+        <div className="mt-1 text-3xl font-bold text-stalder-ink">{formatCHF(s.price)}</div>
+        <button type="button" onClick={openLeadForm} className="btn-stalder mt-4">
           Offerte anfordern
         </button>
-        <p className="mt-3 text-[10px] leading-snug text-gray-400">
-          Preise gemäss STALDER-Preisliste, exkl. Montage und Transport. Wellness-Elemente als Richtpreise.
+        <p className="mt-3 text-[10px] leading-snug text-stalder-muted">
+          Preise gemäss Stalder-Preisliste, exkl. Montage und Transport. Wellness-Elemente als Richtpreise.
         </p>
       </div>
     </aside>

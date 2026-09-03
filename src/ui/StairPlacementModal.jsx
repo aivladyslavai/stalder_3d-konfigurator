@@ -120,7 +120,7 @@ export default function StairPlacementModal() {
     <div className="absolute inset-0 z-20 flex items-center justify-center p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-[#0b1f33]/25 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-stalder-ink/25 backdrop-blur-[2px]"
         aria-label="Abbrechen"
         onClick={cancelPlacing}
       />
@@ -128,7 +128,7 @@ export default function StairPlacementModal() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="place-title"
-        className="stair-place-card relative w-[min(100%,300px)] rounded-[28px] bg-white px-6 pb-6 pt-5 shadow-[0_24px_60px_rgba(11,31,51,0.22)]"
+        className="stair-place-card relative w-[min(100%,300px)] bg-stalder-paper px-6 pb-6 pt-5 shadow-[0_24px_60px_rgba(25,25,35,0.22)]"
       >
         <button
           type="button"
@@ -141,7 +141,7 @@ export default function StairPlacementModal() {
           </svg>
         </button>
 
-        <h2 id="place-title" className="pr-8 text-[17px] font-bold leading-snug text-[#002B6F]">
+        <h2 id="place-title" className="pr-8 text-[17px] font-bold uppercase leading-snug tracking-wide text-stalder-taupe">
           Bitte platzieren Sie das Element:
         </h2>
         <p className="mt-1 text-[12px] font-medium text-gray-400">{placing.label}</p>
@@ -189,8 +189,8 @@ export default function StairPlacementModal() {
                     blocked
                       ? 'cursor-not-allowed border-gray-300 bg-gray-200 opacity-45'
                       : active
-                        ? 'border-[#002B6F] bg-[#002B6F] shadow-[0_0_0_6px_rgba(0,43,111,0.16)]'
-                        : 'border-[#1a1a1a] bg-white hover:scale-110 hover:border-[#32B4E6] hover:shadow-[0_0_0_6px_rgba(50,180,230,0.22)]'
+                        ? 'border-stalder-ink bg-stalder-ink shadow-[0_0_0_6px_rgba(25,25,35,0.16)]'
+                        : 'border-stalder-ink bg-white hover:scale-110 hover:border-stalder-taupe hover:shadow-[0_0_0_6px_rgba(150,145,126,0.28)]'
                   }`}
                   style={{ left: x, top: y }}
                 >

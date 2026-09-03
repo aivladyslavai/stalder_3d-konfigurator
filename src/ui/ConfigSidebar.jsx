@@ -24,11 +24,11 @@ function Chevron({ open }) {
 function Accordion({ id, title, openId, setOpenId, children }) {
   const open = openId === id
   return (
-    <div className="border-b border-gray-100">
+    <div className="border-b border-stalder-line">
       <button
         type="button"
         onClick={() => setOpenId(open ? null : id)}
-        className="flex w-full items-center justify-between px-4 py-3.5 text-left text-sm font-semibold text-gray-800 hover:bg-gray-50"
+        className="flex w-full items-center justify-between px-4 py-3.5 text-left text-sm font-bold uppercase tracking-brand text-stalder-taupe hover:bg-[#f4f3f0]"
       >
         {title}
         <Chevron open={open} />
@@ -39,7 +39,7 @@ function Accordion({ id, title, openId, setOpenId, children }) {
 }
 
 function PoolTypeIcon({ kind, active }) {
-  const stroke = active ? '#002B6F' : '#9ca3af'
+  const stroke = active ? '#191923' : '#9ca3af'
   if (kind === 'Ueberlauf') {
     return (
       <svg viewBox="0 0 72 48" className="h-10 w-14">
@@ -87,7 +87,7 @@ function DimensionSlider({ dimKey, value, onChange }) {
     <div className="mb-3 last:mb-0">
       <div className="mb-1 flex items-baseline justify-between">
         <span className="text-xs font-medium text-gray-700">{range.label}</span>
-        <span className="text-xs font-semibold tabular-nums text-[#002B6F]">
+        <span className="text-xs font-semibold tabular-nums text-stalder-ink">
           {Math.round(local * 1000)} mm
         </span>
       </div>
@@ -111,8 +111,8 @@ function RowBtn({ active, onClick, title, hint }) {
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-start justify-between gap-3 rounded-md border px-3 py-2.5 text-left text-sm transition-colors ${
-        active ? 'border-[#32B4E6] bg-[#32B4E6]/10' : 'border-gray-200 hover:border-gray-300'
+      className={`flex w-full items-start justify-between gap-3 border px-3 py-2.5 text-left text-sm transition-colors ${
+        active ? 'border-stalder-ink bg-stalder-ink/[0.04]' : 'border-gray-200 hover:border-gray-300'
       }`}
     >
       <span>
@@ -155,9 +155,9 @@ export default function ConfigSidebar() {
   }
 
   return (
-    <aside className="flex h-full min-h-0 w-full flex-col border-r border-gray-100 bg-white lg:w-[300px] lg:flex-none">
-      <div className="border-b border-gray-100 px-4 py-3">
-        <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#32B4E6]">Pool Konfigurator</div>
+    <aside className="flex h-full min-h-0 w-full flex-col border-r border-stalder-line bg-stalder-paper lg:w-[300px] lg:flex-none">
+      <div className="border-b border-stalder-line px-4 py-3">
+        <div className="kicker">Konfiguration</div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -169,12 +169,12 @@ export default function ConfigSidebar() {
                 key={sys.id}
                 type="button"
                 onClick={() => s.setPoolSystem(sys.id)}
-                className={`relative flex flex-col items-center rounded-lg border-2 px-2 py-3 ${
-                  active ? 'border-[#002B6F] bg-[#002B6F]/5' : 'border-gray-200 hover:border-gray-300'
+                className={`relative flex flex-col items-center border-2 px-2 py-3 ${
+                  active ? 'border-stalder-ink bg-stalder-ink/[0.04]' : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
                 {active && (
-                  <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#32B4E6] text-[9px] text-white">✓</span>
+                  <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center bg-stalder-ink text-[9px] text-white">✓</span>
                 )}
                 <PoolTypeIcon kind={sys.id} active={active} />
                 <span className="mt-1 text-xs font-semibold text-gray-800">{sys.label}</span>
@@ -184,15 +184,15 @@ export default function ConfigSidebar() {
         </div>
 
         <div className="px-4 pb-3">
-          <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">Material</div>
+          <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-stalder-taupe">Material</div>
           <div className="grid grid-cols-2 gap-2">
             {POOL_TYPES.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => s.setType(t.id)}
-                className={`rounded-md border px-2 py-2 text-xs font-semibold ${
-                  s.type === t.id ? 'border-[#002B6F] bg-[#002B6F] text-white' : 'border-gray-200 text-gray-700'
+                className={`border px-2 py-2 text-xs font-semibold uppercase tracking-brand ${
+                  s.type === t.id ? 'border-stalder-ink bg-stalder-ink text-white' : 'border-gray-200 text-gray-700'
                 }`}
               >
                 {t.id === 'PP' ? 'PP' : 'Chromstahl'}
@@ -202,7 +202,7 @@ export default function ConfigSidebar() {
         </div>
 
         <div className="px-4 pb-4">
-          <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">Grösse</div>
+          <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-stalder-taupe">Grösse</div>
           {['length', 'width', 'depth'].map((key) => (
             <DimensionSlider key={key} dimKey={key} value={s[key]} onChange={(v) => s.setDimension(key, v)} />
           ))}
@@ -210,13 +210,13 @@ export default function ConfigSidebar() {
         </div>
 
         <div className="px-4 pb-4">
-          <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-gray-400">Farbe</div>
+          <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-stalder-taupe">Farbe</div>
           {s.type === 'PP' ? (
             <div className="grid grid-cols-4 gap-2">
               {PP_COLORS.map((c) => (
                 <button key={c.id} type="button" onClick={() => s.setPPColor(c.id)} className="flex flex-col items-center gap-1">
                   <span
-                    className={`h-8 w-full rounded border-2 ${s.ppColor === c.id ? 'border-[#32B4E6]' : 'border-gray-200'}`}
+                    className={`h-8 w-full border-2 ${s.ppColor === c.id ? 'border-stalder-ink' : 'border-gray-200'}`}
                     style={{ background: c.color }}
                   />
                   <span className="text-[10px] text-gray-600">{c.label}</span>
@@ -230,7 +230,7 @@ export default function ConfigSidebar() {
                   key={f.id}
                   type="button"
                   onClick={() => s.setSteelFinish(f.id)}
-                  className={`rounded-md border px-2 py-2 text-xs ${s.steelFinish === f.id ? 'border-[#32B4E6] bg-[#32B4E6]/10' : 'border-gray-200'}`}
+                  className={`border px-2 py-2 text-xs ${s.steelFinish === f.id ? 'border-stalder-ink bg-stalder-ink/[0.04]' : 'border-gray-200'}`}
                 >
                   {f.label.replace('Chromstahl', '').trim()}
                 </button>
@@ -239,7 +239,7 @@ export default function ConfigSidebar() {
           )}
         </div>
 
-        <div className="border-t border-gray-100 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-gray-400">
+        <div className="border-t border-stalder-line px-4 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-stalder-taupe">
           Ausstattung
         </div>
 

@@ -1,10 +1,14 @@
 // Zentrale Definitionen für den Konfigurator (Labels in Deutsch, Preise in CHF).
 // Preisdaten aus Konfigurator_Becken_PP Chromstahl.xlsx (Mycah von Mentlen / STALDER).
 
-export const BRAND_NAVY = '#002B6F'
-export const BRAND_NAVY_DARK = '#00224f'
-export const BRAND_SKY = '#32B4E6'
-export const BRAND_SKY_DARK = '#1f9fd1'
+// Farben und Schrift von stalder-pool.ch (Mulish, Tinte #191923, Taupe #96917E).
+export const BRAND_INK = '#191923'
+export const BRAND_INK_DEEP = '#0e0e14'
+export const BRAND_PAPER = '#fefefe'
+export const BRAND_TAUPE = '#96917E'
+export const BRAND_TAUPE_DARK = '#7c7765'
+export const BRAND_MUTED = '#5e5e5e'
+export const BRAND_LINE = '#eaeaea'
 
 export const WALL_THICKNESS = 0.15
 
@@ -270,7 +274,9 @@ export const DECK_MATERIALS = [
   { id: 'concrete', label: 'Sichtbeton', kind: 'concrete', color: '#bdbbb5', roughness: 0.8 },
 ]
 
-export const PHONE = '+41 41 930 43 43'
+export const PHONE = '+41 71 393 62 62'
+export const SITE_URL = 'https://www.stalder-pool.ch'
+export const COMPANY = 'Stalder Schwimmbadtechnik'
 
 // --- Hilfsfunktionen ---
 
