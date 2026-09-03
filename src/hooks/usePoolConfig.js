@@ -148,7 +148,7 @@ export const usePoolConfig = create((set, get) => ({
   timeOfDay: 'day',
   deck: 'wood',
 
-  lead: { firstName: '', lastName: '', phone: '', email: '', zip: '', message: '' },
+  lead: { firstName: '', lastName: '', phone: '', email: '', zip: '', wishMonth: '', wishYear: '', message: '' },
   price: 0,
 
   openLeadForm: () => set({ showLeadForm: true }),

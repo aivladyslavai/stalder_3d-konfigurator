@@ -1,10 +1,28 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { usePoolConfig } from '../../hooks/usePoolConfig'
+
+const MONTHS = [
+  'Januar',
+  'Februar',
+  'März',
+  'April',
+  'Mai',
+  'Juni',
+  'Juli',
+  'August',
+  'September',
+  'Oktober',
+  'November',
+  'Dezember',
+]
+
+const FIELD =
+  'w-full border-2 border-stalder-ink bg-stalder-paper px-3 py-2.5 text-sm text-stalder-ink outline-none transition-colors placeholder:text-stalder-muted/80 focus:bg-[#f4f3f0]'
 
 function Field({ label, required, type = 'text', value, onChange }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium uppercase tracking-brand text-stalder-muted">
+      <span className="mb-1.5 block text-xs font-medium uppercase tracking-brand text-stalder-muted">
         {label} {required && <span className="text-stalder-taupe">*</span>}
       </span>
       <input
@@ -12,8 +30,36 @@ function Field({ label, required, type = 'text', value, onChange }) {
         required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full border border-stalder-line bg-stalder-paper px-3 py-2 text-sm outline-none focus:border-stalder-ink"
+        className={FIELD}
       />
+    </label>
+  )
+}
+
+function Select({ label, required, value, onChange, placeholder, children }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-medium uppercase tracking-brand text-stalder-muted">
+        {label} {required && <span className="text-stalder-taupe">*</span>}
+      </span>
+      <select
+        required={required}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`${FIELD} appearance-none bg-[length:12px_8px] bg-[right_0.75rem_center] bg-no-repeat pr-9 ${
+          value ? '' : 'text-stalder-muted'
+        }`}
+        style={{
+          backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" fill="none"><path d="M1 1.5 6 6.5 11 1.5" stroke="#191923" stroke-width="1.6" stroke-linecap="round"/></svg>',
+          )}")`,
+        }}
+      >
+        <option value="" disabled>
+          {placeholder}
+        </option>
+        {children}
+      </select>
     </label>
   )
 }
@@ -28,6 +74,10 @@ export default function LeadForm() {
   const lead = usePoolConfig((s) => s.lead)
   const setLead = usePoolConfig((s) => s.setLead)
   const [sent, setSent] = useState(false)
+  const years = useMemo(() => {
+    const start = new Date().getFullYear()
+    return Array.from({ length: 6 }, (_, i) => start + i)
+  }, [])
 
   const submit = (e) => {
     e.preventDefault()
@@ -54,13 +104,49 @@ export default function LeadForm() {
         <Field label="E-Mail" required type="email" value={lead.email} onChange={(v) => setLead({ email: v })} />
         <Field label="PLZ" value={lead.zip} onChange={(v) => setLead({ zip: v })} />
       </div>
+
+      <div>
+        <div className="mb-1.5 text-xs font-medium uppercase tracking-brand text-stalder-muted">
+          Wann wünschen Sie Ihren Pool? <span className="text-stalder-taupe">*</span>
+        </div>
+        <p className="mb-2 text-[11px] leading-snug text-stalder-muted">Monat und Jahr — so sehen wir, wie dringend Ihre Anfrage ist.</p>
+        <div className="grid grid-cols-2 gap-3">
+          <Select
+            label="Monat"
+            required
+            value={lead.wishMonth || ''}
+            onChange={(v) => setLead({ wishMonth: v })}
+            placeholder="Monat wählen"
+          >
+            {MONTHS.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </Select>
+          <Select
+            label="Jahr"
+            required
+            value={lead.wishYear || ''}
+            onChange={(v) => setLead({ wishYear: v })}
+            placeholder="Jahr wählen"
+          >
+            {years.map((y) => (
+              <option key={y} value={String(y)}>
+                {y}
+              </option>
+            ))}
+          </Select>
+        </div>
+      </div>
+
       <label className="block">
-        <span className="mb-1 block text-xs font-medium uppercase tracking-brand text-stalder-muted">Nachricht</span>
+        <span className="mb-1.5 block text-xs font-medium uppercase tracking-brand text-stalder-muted">Nachricht</span>
         <textarea
           rows={3}
           value={lead.message}
           onChange={(e) => setLead({ message: e.target.value })}
-          className="w-full border border-stalder-line bg-stalder-paper px-3 py-2 text-sm outline-none focus:border-stalder-ink"
+          className={`${FIELD} min-h-[5.5rem] resize-y`}
         />
       </label>
 
