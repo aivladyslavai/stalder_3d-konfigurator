@@ -272,6 +272,15 @@ export function injectWaterWaves(shader) {
       `,
     )
   }
+  if (!shader.fragmentShader.includes('directSpecular *= 0.08')) {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <lights_fragment_end>',
+      /* glsl */ `
+      #include <lights_fragment_end>
+      reflectedLight.directSpecular *= 0.08;
+      `,
+    )
+  }
 }
 
 /** Mit GLSL-Gerstner identisch – für Schwimmkörper auf der Oberfläche. */

@@ -125,7 +125,8 @@ export function makeWaterNormalTexture(size = 512, period = 6) {
 /**
  * HDR-Himmelskuppel als Equirect-DataTexture. Dient als Reflexionsumgebung für
  * die Wasseroberfläche: heller Horizont plus überstrahlte Sonne, damit
- * Spiegelung und Glanzlichter unter flachem Blickwinkel realistisch aufhellen.
+ * Spiegelung und Glanzlichter unter flachem Blickwinkel realistisch aufhellen
+ * — ohne harte Sonnenscheibe, die als gelber Fleck in der Beckenmitte landet.
  */
 export function makeSkyEnvTexture(width = 256, mode = 'day') {
   const height = width / 2
@@ -190,14 +191,14 @@ export function makeSkyEnvTexture(width = 256, mode = 'day') {
       const dir = [Math.cos(elev) * Math.cos(az), up, Math.cos(elev) * Math.sin(az)]
       const cosA = dir[0] * sun[0] + dir[1] * sun[1] + dir[2] * sun[2]
 
-      // Sonnenscheibe mit weichem Halo (drinnen nur ein breites Deckenlicht)
-      const disc = hasDisc ? Math.pow(Math.max(0, cosA), 3000) : 0
-      const halo = Math.pow(Math.max(0, cosA), hasDisc ? 24 : 6) * 0.35
+      // Weiches Himmelslicht statt harter Sonnenscheibe: die Scheibe wird nach
+      // PMREM zum gelben Fleck in der Beckenmitte.
+      const glow = hasDisc ? Math.pow(Math.max(0, cosA), 14) * 0.22 : Math.pow(Math.max(0, cosA), 6) * 0.18
 
       const idx = (y * width + x) * 4
-      data[idx] = base[0] + palette.sun[0] * disc + palette.sun[0] * 0.03 * halo
-      data[idx + 1] = base[1] + palette.sun[1] * disc + palette.sun[1] * 0.03 * halo
-      data[idx + 2] = base[2] + palette.sun[2] * disc + palette.sun[2] * 0.03 * halo
+      data[idx] = base[0] + palette.sun[0] * 0.018 * glow
+      data[idx + 1] = base[1] + palette.sun[1] * 0.018 * glow
+      data[idx + 2] = base[2] + palette.sun[2] * 0.018 * glow
       data[idx + 3] = 1
     }
   }

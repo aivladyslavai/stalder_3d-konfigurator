@@ -61,7 +61,7 @@ function makeWaterGeometry(length, width, radius, wall, dens = 12) {
   return g
 }
 
-const WAVE_KEY = 'wj17'
+const WAVE_KEY = 'wj18'
 
 function patchWaveMaterial(mat) {
   if (!mat || mat.userData.waveKey === WAVE_KEY) return
@@ -214,7 +214,7 @@ function Water({
         transmission={1}
         thickness={thickness}
         ior={1.333}
-        roughness={isInfinity ? 0.026 : 0.038}
+        roughness={isInfinity ? 0.04 : 0.052}
         metalness={0}
         chromaticAberration={0.012}
         anisotropicBlur={0.01}
@@ -225,7 +225,7 @@ function Water({
         attenuationColor={led ? '#8fe4fb' : '#57b3cf'}
         color="#dceef5"
         envMap={skyEnv}
-        envMapIntensity={envMode === 'day' ? 0.88 : 0.76}
+        envMapIntensity={envMode === 'day' ? 0.7 : 0.68}
         side={THREE.FrontSide}
       />
     </mesh>
