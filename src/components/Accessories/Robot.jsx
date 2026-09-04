@@ -165,7 +165,7 @@ function Track({ z, map }) {
   })
 
   const sprocketGeo = useMemo(() => {
-    const g = new THREE.CylinderGeometry(0.036, 0.036, 0.074, 12)
+    const g = new THREE.CylinderGeometry(0.036, 0.036, 0.074, 18)
     return g
   }, [])
 
@@ -210,11 +210,11 @@ function BrushRoller({ x }) {
         <meshStandardMaterial {...BRUSH_CORE} />
       </mesh>
       {/* bristle rows */}
-      {Array.from({ length: 5 }, (_, i) => {
-        const z = -0.1 + i * 0.05
+      {Array.from({ length: 7 }, (_, i) => {
+        const z = -0.12 + i * 0.04
         return (
           <mesh key={i} position={[0, 0, z]} rotation={[0, 0, Math.PI / 2]}>
-            <torusGeometry args={[0.034, 0.008, 5, 12]} />
+            <torusGeometry args={[0.034, 0.008, 6, 18]} />
             <meshStandardMaterial {...BRUSH_BRISTLE} />
           </mesh>
         )
@@ -369,17 +369,17 @@ export default function Robot({ position, variant = 'X60', poolDepth }) {
       {/* ---- Front-Abschnitt ---- */}
       {/* Düsenkopf */}
       <mesh position={[0.225, 0.028, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.032, 0.038, 0.05, 14]} />
+        <cylinderGeometry args={[0.032, 0.038, 0.05, 22]} />
         <meshStandardMaterial {...SHELL_ACCENT} />
       </mesh>
       {/* LED-Ring */}
       <mesh position={[0.252, 0.028, 0]} rotation={[0, 0, Math.PI / 2]}>
-        <torusGeometry args={[0.024, 0.005, 6, 12]} />
+        <torusGeometry args={[0.024, 0.005, 8, 18]} />
         <meshStandardMaterial color="#70d8ff" emissive="#5ad4ff" emissiveIntensity={0.5} roughness={0.12} />
       </mesh>
       {/* LED-Hauptauge */}
       <mesh ref={led1} position={[0.258, 0.028, 0]}>
-        <sphereGeometry args={[0.018, 12, 12]} />
+        <sphereGeometry args={[0.018, 18, 18]} />
         <meshStandardMaterial color="#a0eaff" emissive="#5ad4ff" emissiveIntensity={0.9} roughness={0.1} />
       </mesh>
 

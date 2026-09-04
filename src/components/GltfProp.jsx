@@ -177,35 +177,15 @@ export function GltfCopies({
 
 const preload = (url) => useGLTF.preload(url, true, true, extendGltfLoader)
 
-// Only preload models that are immediately visible — others load on demand
+preload('/models/palm.glb')
+preload('/models/coconut-palm.glb')
+preload('/models/date-palm.glb')
+preload('/models/rhizome.glb')
+preload('/models/pothos.glb')
 preload('/models/float.glb')
 preload('/models/beach-chair-2.glb')
-
-// Defer non-critical scenery to idle time
-if (typeof requestIdleCallback !== 'undefined') {
-  requestIdleCallback(() => {
-    preload('/models/palm.glb')
-    preload('/models/coconut-palm.glb')
-    preload('/models/date-palm.glb')
-    preload('/models/rhizome.glb')
-    preload('/models/pothos.glb')
-    preload('/models/cooler.glb')
-    preload('/models/cocktail.glb')
-    preload('/models/flipflops.glb')
-    preload('/models/tropical.glb')
-    preload('/models/plants.glb')
-  })
-} else {
-  setTimeout(() => {
-    preload('/models/palm.glb')
-    preload('/models/coconut-palm.glb')
-    preload('/models/date-palm.glb')
-    preload('/models/rhizome.glb')
-    preload('/models/pothos.glb')
-    preload('/models/cooler.glb')
-    preload('/models/cocktail.glb')
-    preload('/models/flipflops.glb')
-    preload('/models/tropical.glb')
-    preload('/models/plants.glb')
-  }, 2000)
-}
+preload('/models/cooler.glb')
+preload('/models/cocktail.glb')
+preload('/models/flipflops.glb')
+preload('/models/tropical.glb')
+preload('/models/plants.glb')

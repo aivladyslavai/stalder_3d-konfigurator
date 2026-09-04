@@ -39,14 +39,14 @@ function clampToRoundedRect(x, z, hx, hz, r) {
   return { x: sx * bx + dx * k, z: sz * bz + dz * k }
 }
 
-function makeWaterGeometry(length, width, radius, wall, dens = 8) {
+function makeWaterGeometry(length, width, radius, wall, dens = 12) {
   const lw = Math.max(0.4, length - wall)
   const ww = Math.max(0.4, width - wall)
   const hx = lw / 2
   const hz = ww / 2
   const r = Math.max(0, Math.min(radius - wall, hx - 0.02, hz - 0.02))
-  const segX = Math.max(24, Math.min(100, Math.ceil(lw * dens)))
-  const segZ = Math.max(16, Math.min(64, Math.ceil(ww * dens)))
+  const segX = Math.max(32, Math.min(160, Math.ceil(lw * dens)))
+  const segZ = Math.max(20, Math.min(100, Math.ceil(ww * dens)))
   const g = new THREE.PlaneGeometry(lw, ww, segX, segZ)
   g.rotateX(-Math.PI / 2)
   if (r > 0.001) {
@@ -88,8 +88,8 @@ function Water({
   led,
   envMode = 'day',
   pickable = true,
-  resolution = 256,
-  samples = 1,
+  resolution = 512,
+  samples = 2,
   jet = null,
 }) {
   const meshRef = useRef()
@@ -108,7 +108,7 @@ function Water({
   const hz = (width - waterCut) / 2
   const cornerR = Math.max(0, r - t)
 
-  const dens = jet ? 18 : isInfinity ? 12 : 8
+  const dens = jet ? 32 : isInfinity ? 20 : 12
   const geometry = useMemo(
     () => makeWaterGeometry(length, width, r, waterCut, dens),
     [length, width, r, waterCut, dens],
@@ -137,39 +137,10 @@ function Water({
     patchWaveMaterial(matRef.current)
   })
 
-  const frameCount = useRef(0)
-
   useFrame((state) => {
     const mesh = meshRef.current
     if (!mesh) return
     if (typeof document !== 'undefined' && document.hidden) return
-
-    // Skip FBO render every other frame for perf — water refraction still looks smooth
-    frameCount.current += 1
-    const skipFBO = frameCount.current % 2 !== 0
-
-    if (skipFBO) {
-      // Still update shader uniforms even on skipped frames
-      const mat = matRef.current
-      if (mat) {
-        const shader = mat.userData?.shader
-        if (shader?.uniforms?.uTime) {
-          shader.uniforms.uTime.value = state.clock.elapsedTime
-          shader.uniforms.uHalf.value.set(hx, hz)
-          shader.uniforms.uCornerR.value = cornerR
-        }
-        if (shader?.uniforms?.uOverflow) shader.uniforms.uOverflow.value = isInfinity ? 1 : 0
-        if (shader?.uniforms?.uJetOn) {
-          const flow = jetRef.current
-          shader.uniforms.uJetOn.value = flow ? 1 : 0
-          if (flow) {
-            shader.uniforms.uJetOrigin.value.set(flow.origin[0], flow.origin[1])
-            shader.uniforms.uJetDir.value.set(flow.dir[0], flow.dir[1])
-          }
-        }
-      }
-      return
-    }
 
     setFloatsVisible(false)
     state.camera.layers.disable(FLOAT_LAYER)

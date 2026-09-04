@@ -1,6 +1,6 @@
-import React, { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import React, { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls, Environment, SoftShadows } from '@react-three/drei'
+import { OrbitControls, Environment, Sky, SoftShadows } from '@react-three/drei'
 import { EffectComposer, Bloom, Vignette, ToneMapping, SMAA } from '@react-three/postprocessing'
 import { ToneMappingMode } from 'postprocessing'
 import * as THREE from 'three'
@@ -415,37 +415,19 @@ export default function Scene() {
     ? Math.min(HEDGE_RADIUS - 2, Math.max(18, length + width + 10))
     : indoorLimits.maxDistance
 
-  const [ready, setReady] = useState(false)
-  const onCreated = useCallback(({ gl }) => {
-    // Allow the first frame to paint before marking ready
-    requestAnimationFrame(() => setReady(true))
-  }, [])
-
   return (
-    <>
-      {!ready && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-[#eaeaea] to-[#d4d2cc]">
-          <div className="flex flex-col items-center gap-4">
-            <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-stalder-line border-t-stalder-ink" />
-            <span className="text-xs font-semibold uppercase tracking-brand text-stalder-muted">Wird geladen …</span>
-          </div>
-        </div>
-      )}
-      <Canvas
-        shadows
-        frameloop="always"
-        dpr={[1, 1.5]}
-        performance={{ min: 0.5, debounce: 300 }}
-        camera={{ position: [11, 6, 11], fov: 44 }}
-        gl={{
-          antialias: false,
-          toneMapping: THREE.NoToneMapping,
-          powerPreference: 'high-performance',
-          stencil: false,
-          depth: true,
-        }}
-        onCreated={onCreated}
-      >
+    <Canvas
+      shadows
+      dpr={[1, 1.75]}
+      performance={{ min: 0.75, debounce: 200 }}
+      camera={{ position: [11, 6, 11], fov: 44 }}
+      gl={{
+        antialias: false,
+        toneMapping: THREE.NoToneMapping,
+        powerPreference: 'high-performance',
+        stencil: false,
+      }}
+    >
       <color attach="background" args={[L.bg]} />
       <fog attach="fog" args={L.fog} />
 
@@ -453,25 +435,25 @@ export default function Scene() {
         <Sky turbidity={L.sky.turbidity} rayleigh={L.sky.rayleigh} mieCoefficient={0.005} mieDirectionalG={0.85} sunPosition={L.sky.sun} />
       )}
 
-      <SoftShadows size={14} samples={6} focus={0.72} />
+      <SoftShadows size={16} samples={12} focus={0.68} />
       <EnableSceneLayers>
-        <ambientLight intensity={L.ambient} />
+      <ambientLight intensity={L.ambient} />
         <hemisphereLight args={['#d7e6f2', '#7a8a62', L.hemi]} />
-        <directionalLight
-          position={L.sun.pos}
-          intensity={L.sun.intensity}
-          color={L.sun.color}
-          castShadow
-          shadow-mapSize-width={1024}
-          shadow-mapSize-height={1024}
-          shadow-bias={-0.0002}
+      <directionalLight
+        position={L.sun.pos}
+        intensity={L.sun.intensity}
+        color={L.sun.color}
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-bias={-0.0002}
           shadow-camera-left={outdoor ? -20 : -16}
           shadow-camera-right={outdoor ? 20 : 16}
           shadow-camera-top={outdoor ? 20 : 16}
           shadow-camera-bottom={outdoor ? -20 : -16}
-          shadow-camera-near={1}
+        shadow-camera-near={1}
           shadow-camera-far={outdoor ? 48 : 40}
-        />
+      />
       </EnableSceneLayers>
 
       <Suspense fallback={null}>
@@ -571,6 +553,5 @@ export default function Scene() {
         <Vignette eskil={false} offset={0.28} darkness={scene === 'indoor' || timeOfDay === 'dusk' ? 0.4 : 0.18} />
       </EffectComposer>
     </Canvas>
-    </>
   )
 }
