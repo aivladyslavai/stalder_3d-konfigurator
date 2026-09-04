@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   POOL_TYPES,
   POOL_SYSTEMS,
-  POOL_SIZES,
+  SIZE_RANGE,
   NO_STAIR,
   PP_COLORS,
   PLACEABLES,
@@ -52,6 +52,54 @@ function PoolTypeIcon({ kind, active }) {
       <rect x="12" y="10" width="48" height="28" rx="2" fill="none" stroke={stroke} strokeWidth="2.2" />
       <rect x="28" y="8" width="10" height="5" rx="1" fill={stroke} />
     </svg>
+  )
+}
+
+/**
+ * Massregler. Wert lokal, Store höchstens einmal pro Frame — 3D bleibt flüssig.
+ */
+function DimensionSlider({ dimKey, value, onChange }) {
+  const range = SIZE_RANGE[dimKey]
+  const [local, setLocal] = useState(value)
+  const frame = useRef(0)
+  const pending = useRef(null)
+
+  useEffect(() => setLocal(value), [value])
+  useEffect(() => () => cancelAnimationFrame(frame.current), [])
+
+  const handle = (next) => {
+    setLocal(next)
+    pending.current = next
+    if (frame.current) return
+    frame.current = requestAnimationFrame(() => {
+      frame.current = 0
+      if (pending.current != null) onChange(pending.current)
+      pending.current = null
+    })
+  }
+
+  const pct = ((local - range.min) / (range.max - range.min)) * 100
+
+  return (
+    <div className="mb-3 last:mb-0">
+      <div className="mb-1 flex items-baseline justify-between">
+        <span className="text-xs font-medium text-gray-700">{range.label}</span>
+        <span className="text-xs font-semibold tabular-nums text-stalder-ink">
+          {Math.round(local * 1000)} mm
+        </span>
+      </div>
+      <input
+        type="range"
+        min={range.min}
+        max={range.max}
+        step={range.step}
+        value={local}
+        onChange={(e) => handle(parseFloat(e.target.value))}
+        aria-label={range.label}
+        className="dim-slider"
+        style={{ '--fill': `${pct}%` }}
+      />
+    </div>
   )
 }
 
@@ -168,23 +216,11 @@ export default function ConfigSidebar() {
 
         <div className="px-4 pb-4">
           <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-stalder-taupe">Grösse</div>
-          <div className="grid grid-cols-2 gap-2">
-            {POOL_SIZES.map((size) => {
-              const active = s.length === size.length && s.width === size.width && s.depth === size.depth
-              return (
-                <button
-                  key={size.id}
-                  type="button"
-                  onClick={() => s.setPoolSize(size.id)}
-                  className={`border px-2 py-2 text-left ${
-                    active ? 'border-stalder-ink bg-stalder-ink/[0.04]' : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <span className="block text-xs font-bold uppercase tracking-brand text-stalder-ink">{size.label}</span>
-                  <span className="mt-0.5 block text-[10px] leading-snug text-gray-500">{size.dimsLabel}</span>
-                </button>
-              )
-            })}
+          <DimensionSlider dimKey="length" value={s.length} onChange={(v) => s.setDimension('length', v)} />
+          <DimensionSlider dimKey="width" value={s.width} onChange={(v) => s.setDimension('width', v)} />
+          <div className="mt-1 flex items-baseline justify-between text-[11px] text-gray-500">
+            <span>Tiefe</span>
+            <span className="font-semibold tabular-nums text-stalder-ink">{Math.round(s.depth * 1000)} mm</span>
           </div>
         </div>
 

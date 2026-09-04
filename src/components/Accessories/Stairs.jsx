@@ -5,7 +5,7 @@ import { WALL_THICKNESS } from '../../data/config'
 import { makePerforatedTreadMaps } from '../../three/textures'
 
 /**
- * Ecktreppe: eckige Stufen (Dreieck oben, facettierte Vorderkante).
+ * Ecktreppe: nested right triangles (straight 45° front), 6 steps.
  * Breitstufe / Schwebestufen: gerundete Vorderkante.
  */
 
@@ -286,14 +286,10 @@ function makeWideTreadShape(depth, span, radius) {
   return s
 }
 
-/** Faceted corner step: triangle on top, chevron (two straight fronts) below. */
-const CORNER_FACET = 0.8
-
-function makeCornerStepShape(r, faceted) {
+function makeCornerStepShape(r) {
   const s = new THREE.Shape()
   s.moveTo(0, 0)
   s.lineTo(r, 0)
-  if (faceted) s.lineTo(r * CORNER_FACET, r * CORNER_FACET)
   s.lineTo(0, r)
   s.closePath()
   return s
@@ -409,31 +405,26 @@ function Stairs({
     const N = 6
     const innerW = poolWidth - t * 2
     const innerL = poolLength - t * 2
-    const maxR = Math.min(1.42, innerW * 0.6, innerL * 0.36)
-    const minR = Math.min(0.3, maxR * 0.24)
+    const maxR = Math.min(1.35, innerW * 0.58, innerL * 0.34)
     const top = waterY - 0.02
     const rise = (top - TREAD_H - (-poolDepth)) / N
     const bodies = []
     const treads = []
     const leds = []
     for (let i = 0; i < N; i++) {
-      const radius = minR + ((N - 1 - i) * (maxR - minR)) / (N - 1)
-      const faceted = i < N - 1
+      const radius = ((N - i) * maxR) / N
       const yBottom = -poolDepth + i * rise
       const bodyH = Math.max(0.036, rise - TREAD_H - GAP)
-      const bodyR = Math.max(0.08, radius - 0.05)
-      const body = extrudeUp(makeCornerStepShape(bodyR, faceted), bodyH, 0, 1)
+      const bodyR = Math.max(0.06, radius - 0.028)
+      const body = extrudeUp(makeCornerStepShape(bodyR), bodyH, 0, 1)
       body.translate(0, yBottom, 0)
       bodies.push(body)
-      const tread = extrudeUp(makeCornerStepShape(radius, faceted), TREAD_H, 0, 1)
+      const tread = extrudeUp(makeCornerStepShape(radius), TREAD_H, 0, 1)
       tread.translate(0, yBottom + bodyH + GAP, 0)
       treads.push(tread)
       const ly = yBottom + bodyH + GAP + TREAD_H * 0.42
-      const k = CORNER_FACET
-      const bars = faceted
-        ? [ledBar(radius, 0, radius * k, radius * k, ly), ledBar(radius * k, radius * k, 0, radius, ly)]
-        : [ledBar(radius, 0, 0, radius, ly)]
-      bars.forEach((g) => g && leds.push(g))
+      const bar = ledBar(radius, 0, 0, radius, ly)
+      if (bar) leds.push(bar)
     }
     return {
       body: mergeAndDispose(bodies),

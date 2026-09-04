@@ -52,6 +52,7 @@ export function parseOfferPayload(raw) {
     phone: clip(leadIn.phone, 40),
     email: clip(leadIn.email, 120).toLowerCase(),
     zip: clip(leadIn.zip, 12),
+    city: clip(leadIn.city, 80),
     wishMonth: clip(leadIn.wishMonth, 20),
     wishYear: clip(leadIn.wishYear, 6),
     poolSite: clip(leadIn.poolSite, 40),
@@ -190,6 +191,7 @@ function buildInternalEmail(lead, config) {
       ${dlRow('E-Mail', lead.email)}
       ${dlRow('Telefon', lead.phone)}
       ${dlRow('PLZ', lead.zip)}
+      ${dlRow('Stadt', lead.city)}
       ${dlRow('Wunschtermin', `${lead.wishMonth} ${lead.wishYear}`)}
       ${dlRow('Standort', site)}
       ${dlRow('Gartenbau', garden)}
@@ -215,6 +217,7 @@ function buildInternalEmail(lead, config) {
       `E-Mail: ${lead.email}`,
       lead.phone ? `Telefon: ${lead.phone}` : '',
       lead.zip ? `PLZ: ${lead.zip}` : '',
+      lead.city ? `Stadt: ${lead.city}` : '',
       `Wunschtermin: ${lead.wishMonth} ${lead.wishYear}`,
       site ? `Standort: ${site}` : '',
       garden ? `Gartenbau: ${garden}` : '',

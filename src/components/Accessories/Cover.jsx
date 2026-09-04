@@ -1,19 +1,17 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import { WALL_THICKNESS } from '../../data/config'
 
 /**
- * Polycarbonat-Rollladen: Lamellen wickeln sich von der Edelstahlwelle
- * aufs Wasser (und zurück), statt nur zur Hälfte einzublenden.
+ * Polycarbonat-Rollladen: Lamellen fahren aus einer unterirdischen Welle
+ * aufs Wasser. Kasten und Rolle sind nicht sichtbar.
  */
 
 const SLAT_W = 0.072
 const SLAT_H = 0.022
 const PITCH = 0.082
-const ROLL_R = 0.1
-const R0 = ROLL_R + SLAT_H * 0.22
+const UNDER_Y = -0.42
 
 const PC = {
   color: '#d2dbe4',
@@ -77,16 +75,11 @@ function makeSlatGeometry(span) {
   return g
 }
 
-/** Slat sits on the drum. offset=0 is the peel lip (pool side, −X). */
-function poseOnDrum(dummy, offset, rx, y) {
-  const dist = Math.max(0, offset) * PITCH
-  const turns = dist / Math.max(Math.PI * 2 * R0, 0.12)
-  const r = R0 + turns * SLAT_H * 0.92
-  // Over the top; keep faces mostly up so the roll reads from above.
-  const a = Math.PI - dist / Math.max(r, 0.07)
-  dummy.position.set(rx + Math.cos(a) * r, y + Math.sin(a) * r, 0)
-  dummy.rotation.set(0, 0, (a - Math.PI) * 0.38)
-  dummy.scale.set(offset > 16 ? 0 : 1, 1, 1)
+/** Hidden in the underground shaft until a slat peels onto the water. */
+function poseUnderground(dummy, slotX) {
+  dummy.position.set(slotX, UNDER_Y, 0)
+  dummy.rotation.set(0, 0, 0)
+  dummy.scale.set(0, 0, 0)
 }
 
 function poseOnWater(dummy, i, paidOut, coverEnd, y) {
@@ -95,35 +88,26 @@ function poseOnWater(dummy, i, paidOut, coverEnd, y) {
   dummy.scale.set(1, 1, 1)
 }
 
-function posePeel(dummy, frac, rx, y, coverEnd) {
+function posePeel(dummy, frac, slotX, y, coverEnd) {
   const k = smoothstep(frac)
-  poseOnDrum(dummy, 1 - frac, rx, y)
-  const fromX = dummy.position.x
-  const fromY = dummy.position.y
-  const fromR = dummy.rotation.z
   const toX = coverEnd - 0.5 * PITCH
-  dummy.position.set(fromX + (toX - fromX) * k, fromY + (y - fromY) * k, 0)
-  dummy.rotation.set(0, 0, fromR * (1 - k))
+  dummy.position.set(slotX + (toX - slotX) * k, UNDER_Y + (y - UNDER_Y) * k, 0)
+  dummy.rotation.set(0, 0, 0)
   dummy.scale.set(1, 1, 1)
 }
 
-function applySlatMatrices(mesh, { flatCount, wrapCount, y, rx, coverEnd, progress }) {
+function applySlatMatrices(mesh, { flatCount, y, slotX, coverEnd, progress }) {
   if (!mesh?.instanceMatrix) return
-  const total = flatCount + wrapCount
   const cap = mesh.instanceMatrix.count
-  mesh.count = Math.min(total, cap)
+  mesh.count = Math.min(flatCount, cap)
   const p = Math.min(1, Math.max(0, progress))
   const paidOut = p * flatCount
 
   for (let i = 0; i < mesh.count; i++) {
-    if (i < flatCount) {
-      const local = paidOut - i
-      if (local >= 1) poseOnWater(_dummy, i, paidOut, coverEnd, y)
-      else if (local <= 0) poseOnDrum(_dummy, i - paidOut + 0.12, rx, y)
-      else posePeel(_dummy, local, rx, y, coverEnd)
-    } else {
-      poseOnDrum(_dummy, i - paidOut + 0.35, rx, y)
-    }
+    const local = paidOut - i
+    if (local >= 1) poseOnWater(_dummy, i, paidOut, coverEnd, y)
+    else if (local <= 0) poseUnderground(_dummy, slotX)
+    else posePeel(_dummy, local, slotX, y, coverEnd)
     _dummy.updateMatrix()
     mesh.setMatrixAt(i, _dummy.matrix)
   }
@@ -132,7 +116,6 @@ function applySlatMatrices(mesh, { flatCount, wrapCount, y, rx, coverEnd, progre
 
 function Cover({ open = true, onClosed, poolLength, poolWidth, waterY = -0.17 }) {
   const meshRef = useRef()
-  const drumRef = useRef()
   const noseRef = useRef()
   const railA = useRef()
   const railB = useRef()
@@ -140,18 +123,17 @@ function Cover({ open = true, onClosed, poolLength, poolWidth, waterY = -0.17 })
   onClosedRef.current = onClosed
 
   const t = WALL_THICKNESS
-  const span = Math.max(0.6, poolWidth - t * 2 - 0.04)
-  const innerMaxX = poolLength / 2 - t - 0.03
-  const rx = innerMaxX - ROLL_R * 0.85
-  const y = waterY + SLAT_H / 2 + 0.028
-  const coverEnd = rx - R0 - 0.008
+  const span = Math.max(0.6, poolWidth - t * 2 - 0.08)
+  const innerWallX = poolLength / 2 - t
+  const coverEnd = innerWallX - 0.04
+  const slotX = innerWallX - 0.02
+  const y = waterY + SLAT_H * 0.35
   const coverStart = 0.04
   const flatCount = Math.max(4, Math.floor((coverEnd - coverStart) / PITCH))
-  const wrapCount = 7
-  const count = flatCount + wrapCount
+  const count = flatCount
 
   const layoutRef = useRef()
-  layoutRef.current = { flatCount, wrapCount, y, rx, coverEnd }
+  layoutRef.current = { flatCount, y, slotX, coverEnd }
 
   const anim = useRef({
     p: 0,
@@ -186,7 +168,7 @@ function Cover({ open = true, onClosed, poolLength, poolWidth, waterY = -0.17 })
   useLayoutEffect(() => {
     anim.current.dirty = true
     applySlatMatrices(meshRef.current, { ...layoutRef.current, progress: anim.current.p })
-  }, [flatCount, wrapCount, y, rx, coverEnd, count, geometry])
+  }, [flatCount, y, slotX, coverEnd, count, geometry])
 
   useFrame((_, dt) => {
     const a = anim.current
@@ -213,7 +195,6 @@ function Cover({ open = true, onClosed, poolLength, poolWidth, waterY = -0.17 })
     const paidOut = a.p * layout.flatCount
     const waterLen = paidOut * PITCH
     const startX = layout.coverEnd - waterLen
-    if (drumRef.current) drumRef.current.rotation.z = -paidOut * PITCH / ROLL_R
     if (noseRef.current) {
       noseRef.current.position.x = startX - 0.008
       noseRef.current.visible = paidOut > 0.28
@@ -253,27 +234,6 @@ function Cover({ open = true, onClosed, poolLength, poolWidth, waterY = -0.17 })
       <mesh ref={railB} position={[0, y + 0.001, -(span / 2 + 0.01)]} castShadow visible={false}>
         <boxGeometry args={[1, 0.012, 0.016]} />
         <meshPhysicalMaterial {...CHROME} />
-      </mesh>
-
-      <group ref={drumRef} position={[rx, y, 0]}>
-        <mesh rotation={[Math.PI / 2, 0, 0]} castShadow>
-          <cylinderGeometry args={[ROLL_R - 0.014, ROLL_R - 0.014, span + 0.06, 36]} />
-          <meshPhysicalMaterial {...CHROME} />
-        </mesh>
-        {[-1, 1].map((side) => (
-          <mesh key={side} position={[0, 0, side * (span / 2 + 0.02)]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-            <cylinderGeometry args={[ROLL_R + 0.016, ROLL_R + 0.016, 0.024, 32]} />
-            <meshPhysicalMaterial {...CHROME} />
-          </mesh>
-        ))}
-      </group>
-
-      <RoundedBox args={[0.36, 0.18, poolWidth + 0.1]} radius={0.03} smoothness={4} position={[poolLength / 2 + 0.26, 0.09, 0]} castShadow receiveShadow>
-        <meshPhysicalMaterial {...CHROME} />
-      </RoundedBox>
-      <mesh position={[poolLength / 2 + 0.26, 0.185, 0]}>
-        <boxGeometry args={[0.32, 0.012, poolWidth + 0.04]} />
-        <meshPhysicalMaterial color="#b7c2cc" metalness={0.35} roughness={0.32} />
       </mesh>
     </group>
   )

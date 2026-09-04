@@ -116,6 +116,7 @@ function buildOfferPayload(state) {
       phone: (state.lead.phone || '').trim(),
       email: (state.lead.email || '').trim(),
       zip: (state.lead.zip || '').trim(),
+      city: (state.lead.city || '').trim(),
       wishMonth: state.lead.wishMonth,
       wishYear: state.lead.wishYear,
       poolSite: state.lead.poolSite,
@@ -199,6 +200,7 @@ export default function LeadForm() {
         <Field label="Telefon" type="tel" value={lead.phone} onChange={(v) => setLead({ phone: v })} />
         <Field label="E-Mail" required type="email" value={lead.email} onChange={(v) => setLead({ email: v })} />
         <Field label="PLZ" value={lead.zip} onChange={(v) => setLead({ zip: v })} />
+        <Field label="Stadt" value={lead.city || ''} onChange={(v) => setLead({ city: v })} />
       </div>
 
       <div>

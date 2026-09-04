@@ -155,6 +155,7 @@ export const usePoolConfig = create((set, get) => ({
     phone: '',
     email: '',
     zip: '',
+    city: '',
     wishMonth: '',
     wishYear: '',
     poolSite: '',
