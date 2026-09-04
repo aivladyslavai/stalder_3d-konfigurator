@@ -8,6 +8,7 @@ import {
   findPPColor,
   findSteelFinish,
   findPlaceable,
+  findPoolSize,
   getBasePrice,
   getFilterInfo,
   getSaltInfo,
@@ -148,7 +149,19 @@ export const usePoolConfig = create((set, get) => ({
   timeOfDay: 'day',
   deck: 'wood',
 
-  lead: { firstName: '', lastName: '', phone: '', email: '', zip: '', wishMonth: '', wishYear: '', message: '' },
+  lead: {
+    firstName: '',
+    lastName: '',
+    phone: '',
+    email: '',
+    zip: '',
+    wishMonth: '',
+    wishYear: '',
+    poolSite: '',
+    gardenWork: '',
+    gartenbauer: '',
+    message: '',
+  },
   price: 0,
 
   openLeadForm: () => set({ showLeadForm: true }),
@@ -163,6 +176,29 @@ export const usePoolConfig = create((set, get) => ({
   },
   setPoolSystem: (poolSystem) => {
     set({ poolSystem })
+    get().recompute()
+  },
+  setPoolSize: (id) => {
+    const size = findPoolSize(id)
+    const cur = get()
+    if (cur.length === size.length && cur.width === size.width && cur.depth === size.depth) return
+    const placements = cur.placements.map((p) =>
+      rescalePlacement(p, size.length, size.width, cur.length, cur.width),
+    )
+    let placing = cur.placing
+    if (placing?.preview?.wall) {
+      placing = {
+        ...placing,
+        preview: rescalePlacement(
+          { ...placing.preview, place: placing.place },
+          size.length,
+          size.width,
+          cur.length,
+          cur.width,
+        ),
+      }
+    }
+    set({ length: size.length, width: size.width, depth: size.depth, placements, placing })
     get().recompute()
   },
   setDimension: (key, rawValue) => {

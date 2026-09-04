@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { findPPColor, findSteelFinish } from '../../data/config'
+import { findPPColor } from '../../data/config'
 import { calcPrice, listSelectedLines, usePoolConfig } from '../../hooks/usePoolConfig'
 
 const MONTHS = [
@@ -65,6 +65,42 @@ function Select({ label, required, value, onChange, placeholder, children }) {
   )
 }
 
+const SITE_OPTIONS = [
+  { id: 'eben', label: 'Ebenes Gelände' },
+  { id: 'hanglage', label: 'Hanglage' },
+  { id: 'freistehend', label: 'Freistehend' },
+]
+
+const GARDEN_OPTIONS = [
+  { id: 'gesamtloesung', label: 'interessiert an einer Gesamtlösung' },
+  { id: 'gartenbauer', label: 'einen bestimmten Gartenbauer nach Möglichkeit berücksichtigen' },
+]
+
+function RadioQuestion({ label, required, name, value, onChange, options }) {
+  return (
+    <fieldset className="min-w-0">
+      <legend className="mb-2 text-sm font-semibold text-stalder-ink">
+        {label} {required && <span className="text-stalder-taupe">*</span>}
+      </legend>
+      <div className="space-y-2">
+        {options.map((o) => (
+          <label key={o.id} className="flex cursor-pointer items-start gap-2.5 text-sm text-stalder-ink">
+            <input
+              type="radio"
+              name={name}
+              required={required}
+              checked={value === o.id}
+              onChange={() => onChange(o.id)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-stalder-ink"
+            />
+            <span>{o.label}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  )
+}
+
 const TRUST = [
   { title: 'Ostschweiz', desc: 'Ihr Pool-Experte in der Region St. Gallen, Zürich und Schaffhausen.' },
   { title: 'Persönliche Beratung', desc: 'Von der Planung bis zur Inbetriebnahme an Ihrer Seite.' },
@@ -82,6 +118,9 @@ function buildOfferPayload(state) {
       zip: (state.lead.zip || '').trim(),
       wishMonth: state.lead.wishMonth,
       wishYear: state.lead.wishYear,
+      poolSite: state.lead.poolSite,
+      gardenWork: state.lead.gardenWork,
+      gartenbauer: (state.lead.gartenbauer || '').trim(),
       message: (state.lead.message || '').trim(),
     },
     config: {
@@ -90,7 +129,7 @@ function buildOfferPayload(state) {
       length: state.length,
       width: state.width,
       depth: state.depth,
-      color: state.type === 'PP' ? findPPColor(state.ppColor).label : findSteelFinish(state.steelFinish).label,
+      color: state.type === 'PP' ? findPPColor(state.ppColor).label : '',
       lines: listSelectedLines(state).map((line) => ({ label: line.label, price: line.price })),
       price: calcPrice(state),
     },
@@ -195,6 +234,31 @@ export default function LeadForm() {
             ))}
           </Select>
         </div>
+      </div>
+
+      <RadioQuestion
+        label="Wo soll das Becken stehen?"
+        required
+        name="poolSite"
+        value={lead.poolSite || ''}
+        onChange={(v) => setLead({ poolSite: v })}
+        options={SITE_OPTIONS}
+      />
+
+      <div>
+        <RadioQuestion
+          label="Wie sollen die Gartenbau-Arbeiten umgesetzt werden?"
+          required
+          name="gardenWork"
+          value={lead.gardenWork || ''}
+          onChange={(v) => setLead({ gardenWork: v, gartenbauer: v === 'gartenbauer' ? lead.gartenbauer : '' })}
+          options={GARDEN_OPTIONS}
+        />
+        {lead.gardenWork === 'gartenbauer' && (
+          <div className="ml-[26px] mt-2">
+            <Field label="Gartenbauer" required value={lead.gartenbauer || ''} onChange={(v) => setLead({ gartenbauer: v })} />
+          </div>
+        )}
       </div>
 
       <label className="block">

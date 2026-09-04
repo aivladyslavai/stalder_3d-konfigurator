@@ -54,6 +54,9 @@ export function parseOfferPayload(raw) {
     zip: clip(leadIn.zip, 12),
     wishMonth: clip(leadIn.wishMonth, 20),
     wishYear: clip(leadIn.wishYear, 6),
+    poolSite: clip(leadIn.poolSite, 40),
+    gardenWork: clip(leadIn.gardenWork, 40),
+    gartenbauer: clip(leadIn.gartenbauer, 120),
     message: clip(leadIn.message, MAX_MESSAGE),
   }
 
@@ -65,6 +68,15 @@ export function parseOfferPayload(raw) {
   }
   if (!lead.wishMonth || !lead.wishYear) {
     return { error: 'Bitte gewünschten Zeitraum angeben.' }
+  }
+  if (!['eben', 'hanglage', 'freistehend'].includes(lead.poolSite)) {
+    return { error: 'Bitte angeben, wo das Becken stehen soll.' }
+  }
+  if (!['gesamtloesung', 'gartenbauer'].includes(lead.gardenWork)) {
+    return { error: 'Bitte angeben, wie die Gartenbau-Arbeiten umgesetzt werden sollen.' }
+  }
+  if (lead.gardenWork === 'gartenbauer' && !lead.gartenbauer) {
+    return { error: 'Bitte den Gartenbauer angeben.' }
   }
 
   const year = Number(lead.wishYear)
@@ -155,10 +167,23 @@ function dlRow(label, value) {
     </tr>`
 }
 
+const SITE_LABELS = {
+  eben: 'Ebenes Gelände',
+  hanglage: 'Hanglage',
+  freistehend: 'Freistehend',
+}
+
+const GARDEN_LABELS = {
+  gesamtloesung: 'interessiert an einer Gesamtlösung',
+  gartenbauer: 'einen bestimmten Gartenbauer nach Möglichkeit berücksichtigen',
+}
+
 function buildInternalEmail(lead, config) {
   const dims = formatDims(config.length, config.width, config.depth)
   const name = `${lead.firstName} ${lead.lastName}`
   const system = config.poolSystem === 'Ueberlauf' ? 'Überlauf' : config.poolSystem || '—'
+  const garden = GARDEN_LABELS[lead.gardenWork] || lead.gardenWork
+  const site = SITE_LABELS[lead.poolSite] || lead.poolSite
   const body = `
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
       ${dlRow('Name', name)}
@@ -166,6 +191,9 @@ function buildInternalEmail(lead, config) {
       ${dlRow('Telefon', lead.phone)}
       ${dlRow('PLZ', lead.zip)}
       ${dlRow('Wunschtermin', `${lead.wishMonth} ${lead.wishYear}`)}
+      ${dlRow('Standort', site)}
+      ${dlRow('Gartenbau', garden)}
+      ${dlRow('Gartenbauer', lead.gartenbauer)}
       ${dlRow('Nachricht', lead.message)}
     </table>
     <div style="font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#96917E;font-weight:700;margin:8px 0 12px;">Konfiguration</div>
@@ -188,6 +216,9 @@ function buildInternalEmail(lead, config) {
       lead.phone ? `Telefon: ${lead.phone}` : '',
       lead.zip ? `PLZ: ${lead.zip}` : '',
       `Wunschtermin: ${lead.wishMonth} ${lead.wishYear}`,
+      site ? `Standort: ${site}` : '',
+      garden ? `Gartenbau: ${garden}` : '',
+      lead.gartenbauer ? `Gartenbauer: ${lead.gartenbauer}` : '',
       lead.message ? `Nachricht: ${lead.message}` : '',
       '',
       `${config.type} ${system} ${dims}`,

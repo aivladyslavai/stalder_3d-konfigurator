@@ -1,15 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   POOL_TYPES,
   POOL_SYSTEMS,
-  SIZE_RANGE,
+  POOL_SIZES,
   NO_STAIR,
   PP_COLORS,
-  STEEL_FINISHES,
   PLACEABLES,
   getStairsForType,
   getLedInfo,
-  formatDims,
 } from '../data/config'
 import { usePoolConfig } from '../hooks/usePoolConfig'
 
@@ -54,55 +52,6 @@ function PoolTypeIcon({ kind, active }) {
       <rect x="12" y="10" width="48" height="28" rx="2" fill="none" stroke={stroke} strokeWidth="2.2" />
       <rect x="28" y="8" width="10" height="5" rx="1" fill={stroke} />
     </svg>
-  )
-}
-
-/**
- * Massregler. Der Wert wird lokal gehalten und höchstens einmal pro Frame in
- * den Store geschrieben, damit das 3D-Modell beim Ziehen flüssig folgt.
- */
-function DimensionSlider({ dimKey, value, onChange }) {
-  const range = SIZE_RANGE[dimKey]
-  const [local, setLocal] = useState(value)
-  const frame = useRef(0)
-  const pending = useRef(null)
-
-  useEffect(() => setLocal(value), [value])
-  useEffect(() => () => cancelAnimationFrame(frame.current), [])
-
-  const handle = (next) => {
-    setLocal(next)
-    pending.current = next
-    if (frame.current) return
-    frame.current = requestAnimationFrame(() => {
-      frame.current = 0
-      if (pending.current != null) onChange(pending.current)
-      pending.current = null
-    })
-  }
-
-  const pct = ((local - range.min) / (range.max - range.min)) * 100
-
-  return (
-    <div className="mb-3 last:mb-0">
-      <div className="mb-1 flex items-baseline justify-between">
-        <span className="text-xs font-medium text-gray-700">{range.label}</span>
-        <span className="text-xs font-semibold tabular-nums text-stalder-ink">
-          {Math.round(local * 1000)} mm
-        </span>
-      </div>
-      <input
-        type="range"
-        min={range.min}
-        max={range.max}
-        step={range.step}
-        value={local}
-        onChange={(e) => handle(parseFloat(e.target.value))}
-        aria-label={range.label}
-        className="dim-slider"
-        style={{ '--fill': `${pct}%` }}
-      />
-    </div>
   )
 }
 
@@ -219,15 +168,29 @@ export default function ConfigSidebar() {
 
         <div className="px-4 pb-4">
           <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-stalder-taupe">Grösse</div>
-          {['length', 'width', 'depth'].map((key) => (
-            <DimensionSlider key={key} dimKey={key} value={s[key]} onChange={(v) => s.setDimension(key, v)} />
-          ))}
-          <div className="mt-1 text-[11px] text-gray-500">{formatDims(s.length, s.width, s.depth)}</div>
+          <div className="grid grid-cols-2 gap-2">
+            {POOL_SIZES.map((size) => {
+              const active = s.length === size.length && s.width === size.width && s.depth === size.depth
+              return (
+                <button
+                  key={size.id}
+                  type="button"
+                  onClick={() => s.setPoolSize(size.id)}
+                  className={`border px-2 py-2 text-left ${
+                    active ? 'border-stalder-ink bg-stalder-ink/[0.04]' : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <span className="block text-xs font-bold uppercase tracking-brand text-stalder-ink">{size.label}</span>
+                  <span className="mt-0.5 block text-[10px] leading-snug text-gray-500">{size.dimsLabel}</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
-        <div className="px-4 pb-4">
-          <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-stalder-taupe">Farbe</div>
-          {s.type === 'PP' ? (
+        {s.type === 'PP' && (
+          <div className="px-4 pb-4">
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-stalder-taupe">Farbe</div>
             <div className="grid grid-cols-4 gap-2">
               {PP_COLORS.map((c) => (
                 <button key={c.id} type="button" onClick={() => s.setPPColor(c.id)} className="flex flex-col items-center gap-1">
@@ -239,21 +202,8 @@ export default function ConfigSidebar() {
                 </button>
               ))}
             </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {STEEL_FINISHES.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => s.setSteelFinish(f.id)}
-                  className={`border px-2 py-2 text-xs ${s.steelFinish === f.id ? 'border-stalder-ink bg-stalder-ink/[0.04]' : 'border-gray-200'}`}
-                >
-                  {f.label.replace('Chromstahl', '').trim()}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="border-t border-stalder-line px-4 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-stalder-taupe">
           Ausstattung

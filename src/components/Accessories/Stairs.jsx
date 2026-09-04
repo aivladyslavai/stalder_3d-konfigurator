@@ -5,7 +5,7 @@ import { WALL_THICKNESS } from '../../data/config'
 import { makePerforatedTreadMaps } from '../../three/textures'
 
 /**
- * Ecktreppe: römische Viertelkreis-Stufen, 3 Draw-Calls.
+ * Ecktreppe: eckige Stufen (Dreieck oben, facettierte Vorderkante).
  * Breitstufe / Schwebestufen: gerundete Vorderkante.
  */
 
@@ -49,14 +49,6 @@ function steelMat(material, polished = false) {
         roughness: 0.38,
         envMapIntensity: 1.05,
       }
-}
-
-function makeQuarterDisk(r) {
-  const s = new THREE.Shape()
-  s.moveTo(0, 0)
-  s.absarc(0, 0, Math.max(0.06, r), 0, Math.PI / 2, false)
-  s.lineTo(0, 0)
-  return s
 }
 
 function makeFloatTreadShape(depth, width) {
@@ -294,14 +286,38 @@ function makeWideTreadShape(depth, span, radius) {
   return s
 }
 
-function extrudeUp(shape, thickness, bevel = 0) {
+/** Faceted corner step: triangle on top, chevron (two straight fronts) below. */
+const CORNER_FACET = 0.8
+
+function makeCornerStepShape(r, faceted) {
+  const s = new THREE.Shape()
+  s.moveTo(0, 0)
+  s.lineTo(r, 0)
+  if (faceted) s.lineTo(r * CORNER_FACET, r * CORNER_FACET)
+  s.lineTo(0, r)
+  s.closePath()
+  return s
+}
+
+function ledBar(ax, az, bx, bz, y) {
+  const dx = bx - ax
+  const dz = bz - az
+  const len = Math.hypot(dx, dz)
+  if (len < 0.01) return null
+  const g = new THREE.BoxGeometry(0.016, 0.01, len)
+  g.rotateY(Math.atan2(dx, dz))
+  g.translate((ax + bx) / 2, y, (az + bz) / 2)
+  return g
+}
+
+function extrudeUp(shape, thickness, bevel = 0, curveSegments = 20) {
   const g = new THREE.ExtrudeGeometry(shape, {
     depth: thickness,
     bevelEnabled: bevel > 0,
     bevelThickness: bevel,
     bevelSize: bevel,
     bevelSegments: bevel > 0 ? 3 : 0,
-    curveSegments: 20,
+    curveSegments,
     steps: 1,
   })
   g.rotateX(Math.PI / 2)
@@ -390,11 +406,11 @@ function Stairs({
   const eck = type === 'Ecktreppe'
   const eckGeos = useMemo(() => {
     if (!eck) return null
-    const N = 5
+    const N = 6
     const innerW = poolWidth - t * 2
     const innerL = poolLength - t * 2
-    const maxR = Math.min(1.32, innerW * 0.58, innerL * 0.32)
-    const minR = Math.min(0.42, maxR * 0.34)
+    const maxR = Math.min(1.42, innerW * 0.6, innerL * 0.36)
+    const minR = Math.min(0.3, maxR * 0.24)
     const top = waterY - 0.02
     const rise = (top - TREAD_H - (-poolDepth)) / N
     const bodies = []
@@ -402,19 +418,22 @@ function Stairs({
     const leds = []
     for (let i = 0; i < N; i++) {
       const radius = minR + ((N - 1 - i) * (maxR - minR)) / (N - 1)
+      const faceted = i < N - 1
       const yBottom = -poolDepth + i * rise
       const bodyH = Math.max(0.036, rise - TREAD_H - GAP)
-      const bodyR = Math.max(0.07, radius - 0.07)
-      const body = extrudeUp(makeQuarterDisk(bodyR), bodyH)
+      const bodyR = Math.max(0.08, radius - 0.05)
+      const body = extrudeUp(makeCornerStepShape(bodyR, faceted), bodyH, 0, 1)
       body.translate(0, yBottom, 0)
       bodies.push(body)
-      const tread = extrudeUp(makeQuarterDisk(radius), TREAD_H)
+      const tread = extrudeUp(makeCornerStepShape(radius, faceted), TREAD_H, 0, 1)
       tread.translate(0, yBottom + bodyH + GAP, 0)
       treads.push(tread)
-      const led = new THREE.TorusGeometry(Math.max(0.04, radius - 0.004), 0.014, 6, 28, Math.PI / 2)
-      led.rotateX(Math.PI / 2)
-      led.translate(0, yBottom + bodyH + GAP + TREAD_H * 0.42, 0)
-      leds.push(led)
+      const ly = yBottom + bodyH + GAP + TREAD_H * 0.42
+      const k = CORNER_FACET
+      const bars = faceted
+        ? [ledBar(radius, 0, radius * k, radius * k, ly), ledBar(radius * k, radius * k, 0, radius, ly)]
+        : [ledBar(radius, 0, 0, radius, ly)]
+      bars.forEach((g) => g && leds.push(g))
     }
     return {
       body: mergeAndDispose(bodies),
@@ -439,10 +458,10 @@ function Stairs({
     return (
       <group position={pose.position} rotation={pose.rotation}>
         <mesh geometry={eckGeos.body}>
-          <meshStandardMaterial {...bodyMat} />
+          <meshStandardMaterial {...bodyMat} flatShading />
         </mesh>
         <mesh geometry={eckGeos.tread}>
-          <meshStandardMaterial {...TREAD_VIS} />
+          <meshStandardMaterial {...TREAD_VIS} flatShading />
         </mesh>
         {eckGeos.led && (
           <mesh geometry={eckGeos.led}>

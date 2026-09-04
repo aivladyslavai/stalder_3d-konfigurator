@@ -41,9 +41,14 @@ textarea {
 
 button:focus-visible,
 input:focus-visible,
-textarea:focus-visible {
+textarea:focus-visible,
+select:focus-visible {
   outline: 2px solid var(--stalder-ink);
   outline-offset: 2px;
+}
+
+input[type='radio'] {
+  accent-color: var(--stalder-ink);
 }
 
 .btn-stalder {

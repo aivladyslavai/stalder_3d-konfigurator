@@ -41,8 +41,7 @@ export const POOL_SYSTEMS = [
 ]
 
 // --- Schritt 3: Beckengrössen ---
-// Die Katalogmasse bleiben die Preis-Stützstellen; zwischen ihnen wird frei
-// über die Wasserfläche interpoliert (Schieberegler).
+// Kataloggrössen aus Konfigurator_Becken_PP Chromstahl.xlsx.
 export const SIZE_RANGE = {
   length: { min: 4, max: 12, step: 0.1, label: 'Länge' },
   width: { min: 2, max: 4.5, step: 0.1, label: 'Breite' },
