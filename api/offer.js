@@ -294,13 +294,11 @@ export async function processOfferRequest(raw, env = process.env) {
   const internal = buildInternalEmail(lead, config)
   const customer = buildCustomerEmail(lead, config)
   const mailer = createMailer(env)
-  const staffTo = [to]
-  if (lead.email === 'vladyslav.katash@kaboom.ch') staffTo.push(lead.email)
 
   try {
     await sendMail(mailer, {
       from,
-      to: staffTo,
+      to,
       replyTo: lead.email,
       subject: internal.subject,
       html: internal.html,
