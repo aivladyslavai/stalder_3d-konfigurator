@@ -69,6 +69,14 @@ textarea:focus-visible {
   border-color: var(--stalder-ink-deep);
 }
 
+.btn-stalder:disabled,
+.btn-stalder:disabled:hover {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: var(--stalder-ink);
+  border-color: var(--stalder-ink);
+}
+
 .btn-stalder-ghost {
   background: transparent;
   color: var(--stalder-ink);

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react'
-import { usePoolConfig } from '../../hooks/usePoolConfig'
+import { findPPColor, findSteelFinish } from '../../data/config'
+import { calcPrice, listSelectedLines, usePoolConfig } from '../../hooks/usePoolConfig'
 
 const MONTHS = [
   'Januar',
@@ -70,18 +71,68 @@ const TRUST = [
   { title: 'Qualität', desc: 'Polyfaser, PPool® und Chromstahl — passend zu Ihrem Garten.' },
 ]
 
+function buildOfferPayload(state) {
+  return {
+    website: '',
+    lead: {
+      firstName: state.lead.firstName.trim(),
+      lastName: state.lead.lastName.trim(),
+      phone: (state.lead.phone || '').trim(),
+      email: (state.lead.email || '').trim(),
+      zip: (state.lead.zip || '').trim(),
+      wishMonth: state.lead.wishMonth,
+      wishYear: state.lead.wishYear,
+      message: (state.lead.message || '').trim(),
+    },
+    config: {
+      type: state.type,
+      poolSystem: state.poolSystem,
+      length: state.length,
+      width: state.width,
+      depth: state.depth,
+      color: state.type === 'PP' ? findPPColor(state.ppColor).label : findSteelFinish(state.steelFinish).label,
+      lines: listSelectedLines(state).map((line) => ({ label: line.label, price: line.price })),
+      price: calcPrice(state),
+    },
+  }
+}
+
 export default function LeadForm() {
   const lead = usePoolConfig((s) => s.lead)
   const setLead = usePoolConfig((s) => s.setLead)
   const [sent, setSent] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const [honeypot, setHoneypot] = useState('')
   const years = useMemo(() => {
     const start = new Date().getFullYear()
     return Array.from({ length: 6 }, (_, i) => start + i)
   }, [])
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
-    setSent(true)
+    if (submitting) return
+    setError('')
+    setSubmitting(true)
+    try {
+      const payload = buildOfferPayload(usePoolConfig.getState())
+      payload.website = honeypot
+      const res = await fetch('/api/offer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(data.error || 'Senden fehlgeschlagen. Bitte später erneut versuchen.')
+        return
+      }
+      setSent(true)
+    } catch {
+      setError('Keine Verbindung. Bitte prüfen Sie Ihr Netzwerk oder rufen Sie uns an.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (sent) {
@@ -97,6 +148,12 @@ export default function LeadForm() {
 
   return (
     <form onSubmit={submit} className="space-y-5">
+      <div className="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden>
+        <label>
+          Website
+          <input type="text" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
+        </label>
+      </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Vorname" required value={lead.firstName} onChange={(v) => setLead({ firstName: v })} />
         <Field label="Nachname" required value={lead.lastName} onChange={(v) => setLead({ lastName: v })} />
@@ -150,8 +207,14 @@ export default function LeadForm() {
         />
       </label>
 
-      <button type="submit" className="btn-stalder w-auto px-8">
-        Offerte anfordern
+      {error && (
+        <p role="alert" className="border-2 border-stalder-ink bg-[#f4f3f0] px-3 py-2 text-sm text-stalder-ink">
+          {error}
+        </p>
+      )}
+
+      <button type="submit" className="btn-stalder w-auto px-8" disabled={submitting} aria-busy={submitting}>
+        {submitting ? 'Wird gesendet …' : 'Offerte anfordern'}
       </button>
 
       <div className="grid grid-cols-1 gap-4 border-t border-stalder-line pt-5 sm:grid-cols-3">
