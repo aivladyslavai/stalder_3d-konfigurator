@@ -45,7 +45,7 @@ export const POOL_SYSTEMS = [
 export const SIZE_RANGE = {
   length: { min: 4, max: 12, step: 0.1, label: 'Länge' },
   width: { min: 2, max: 4.5, step: 0.1, label: 'Breite' },
-  depth: { min: 1.2, max: 2.0, step: 0.05, label: 'Tiefe' },
+  depth: { min: 0.5, max: 1.6, step: 0.05, label: 'Tiefe' },
 }
 
 export const POOL_SIZES = [

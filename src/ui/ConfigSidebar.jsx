@@ -218,10 +218,7 @@ export default function ConfigSidebar() {
           <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-stalder-taupe">Grösse</div>
           <DimensionSlider dimKey="length" value={s.length} onChange={(v) => s.setDimension('length', v)} />
           <DimensionSlider dimKey="width" value={s.width} onChange={(v) => s.setDimension('width', v)} />
-          <div className="mt-1 flex items-baseline justify-between text-[11px] text-gray-500">
-            <span>Tiefe</span>
-            <span className="font-semibold tabular-nums text-stalder-ink">{Math.round(s.depth * 1000)} mm</span>
-          </div>
+          <DimensionSlider dimKey="depth" value={s.depth} onChange={(v) => s.setDimension('depth', v)} />
         </div>
 
         {s.type === 'PP' && (
