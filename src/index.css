@@ -321,7 +321,7 @@ input[type='radio'] {
   background: var(--stalder-paper);
   user-select: none;
   contain: layout style paint;
-  transition: opacity 1.12s cubic-bezier(0.22, 1, 0.36, 1), visibility 1.12s linear;
+  transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.78s, visibility 0.9s linear 0.78s;
 }
 
 .scene-loader.is-leaving {
@@ -356,30 +356,128 @@ input[type='radio'] {
   shape-rendering: geometricPrecision;
 }
 
-.scene-loader-pool.is-built {
-  animation: loader-float 5.2s ease-in-out infinite;
+.scene-loader-pool.is-looping .scene-loader-shadow,
+.scene-loader-pool.is-looping .scene-loader-floor-g,
+.scene-loader-pool.is-looping .scene-loader-walls,
+.scene-loader-pool.is-looping .scene-loader-liner,
+.scene-loader-pool.is-looping .scene-loader-coping,
+.scene-loader-pool.is-looping .scene-loader-led,
+.scene-loader-pool.is-looping .scene-loader-well,
+.scene-loader-pool.is-looping .scene-loader-step,
+.scene-loader-pool.is-looping .scene-loader-stair-lines,
+.scene-loader-pool.is-looping .scene-loader-water,
+.scene-loader-pool.is-looping .scene-loader-water-sheen,
+.scene-loader-pool.is-looping .scene-loader-waves,
+.scene-loader-pool.is-looping .scene-loader-trace {
+  animation-duration: 6s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
 }
 
-.scene-loader-pool.is-built .scene-loader-trace-outer {
-  stroke-dasharray: 42 678;
-  animation: loader-orbit 6.4s linear infinite;
+.scene-loader-pool.is-looping .scene-loader-shadow {
+  animation-name: lp-shadow;
 }
 
-.scene-loader-pool.is-built .scene-loader-led-glow {
-  animation: loader-led 2.8s ease-in-out infinite;
+.scene-loader-pool.is-looping .scene-loader-floor-g {
+  animation-name: lp-floor;
 }
 
-.scene-loader-pool.is-built .scene-loader-caustic {
+.scene-loader-pool.is-looping .scene-loader-walls {
+  animation-name: lp-walls;
+}
+
+.scene-loader-pool.is-looping .scene-loader-liner {
+  animation-name: lp-liner;
+}
+
+.scene-loader-pool.is-looping .scene-loader-coping {
+  animation-name: lp-coping;
+}
+
+.scene-loader-pool.is-looping .scene-loader-led {
+  animation-name: lp-led;
+}
+
+.scene-loader-pool.is-looping .scene-loader-trace-outer {
+  animation-name: lp-trace;
+}
+
+.scene-loader-pool.is-looping .scene-loader-trace-inner {
+  animation-name: lp-trace-in;
+}
+
+.scene-loader-pool.is-looping .scene-loader-well {
+  animation-name: lp-s0;
+}
+
+.scene-loader-pool.is-looping .scene-loader-step:nth-child(2) {
+  animation-name: lp-s0;
+}
+
+.scene-loader-pool.is-looping .scene-loader-step:nth-child(3) {
+  animation-name: lp-s1;
+}
+
+.scene-loader-pool.is-looping .scene-loader-step:nth-child(4) {
+  animation-name: lp-s2;
+}
+
+.scene-loader-pool.is-looping .scene-loader-step:nth-child(5) {
+  animation-name: lp-s3;
+}
+
+.scene-loader-pool.is-looping .scene-loader-step:nth-child(6) {
+  animation-name: lp-s4;
+}
+
+.scene-loader-pool.is-looping .scene-loader-step:nth-child(7) {
+  animation-name: lp-s5;
+}
+
+.scene-loader-pool.is-looping .scene-loader-stair-lines {
+  animation-name: lp-s5;
+}
+
+.scene-loader-pool.is-looping .scene-loader-water {
+  animation-name: lp-water;
+}
+
+.scene-loader-pool.is-looping .scene-loader-water-sheen {
+  animation-name: lp-sheen;
+}
+
+.scene-loader-pool.is-looping .scene-loader-waves {
+  animation-name: lp-waves, loader-waves;
+  animation-duration: 6s, 18s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1), linear;
+}
+
+.scene-loader-pool.is-looping .scene-loader-caustic {
   animation: loader-caustic 9s ease-in-out infinite alternate;
 }
 
-.scene-loader-pool.is-built .scene-loader-caustic-b {
-  animation-duration: 11s;
-  animation-direction: alternate-reverse;
+.scene-loader-pool.is-complete .scene-loader-shadow,
+.scene-loader-pool.is-complete .scene-loader-floor-g,
+.scene-loader-pool.is-complete .scene-loader-walls,
+.scene-loader-pool.is-complete .scene-loader-liner,
+.scene-loader-pool.is-complete .scene-loader-coping,
+.scene-loader-pool.is-complete .scene-loader-led,
+.scene-loader-pool.is-complete .scene-loader-well,
+.scene-loader-pool.is-complete .scene-loader-step,
+.scene-loader-pool.is-complete .scene-loader-stair-lines,
+.scene-loader-pool.is-complete .scene-loader-water,
+.scene-loader-pool.is-complete .scene-loader-water-sheen,
+.scene-loader-pool.is-complete .scene-loader-waves {
+  opacity: 1;
 }
 
-.scene-loader-pool.is-built .scene-loader-waves {
-  animation: loader-waves 20s linear infinite;
+.scene-loader-pool.is-complete .scene-loader-walls {
+  transform: none;
+}
+
+.scene-loader-pool.is-complete .scene-loader-trace {
+  stroke-dashoffset: 0;
 }
 
 .scene-loader-shadow,
@@ -412,7 +510,6 @@ input[type='radio'] {
   transform-origin: 108px 117px;
   transform-box: view-box;
   transform: scaleY(0.18);
-  will-change: transform, opacity;
 }
 
 .scene-loader-grout {
@@ -453,11 +550,7 @@ input[type='radio'] {
 }
 
 .scene-loader-water {
-  will-change: transform, opacity;
-}
-
-.scene-loader-pool.is-built .scene-loader-water {
-  will-change: auto;
+  transform-origin: 108px 70px;
 }
 
 .scene-loader-waves {
@@ -550,7 +643,7 @@ input[type='radio'] {
   height: 100%;
   width: 100%;
   border-radius: 99px;
-  transform: translate3d(-92%, 0, 0);
+  transform: translate3d(-90%, 0, 0);
   background: var(--stalder-ink);
   will-change: transform;
   backface-visibility: hidden;
@@ -592,29 +685,270 @@ input[type='radio'] {
   }
 }
 
-@keyframes loader-float {
+@keyframes lp-shadow {
   0%,
+  3% {
+    opacity: 0;
+  }
+  10%,
+  78% {
+    opacity: 1;
+  }
+  90%,
   100% {
+    opacity: 0;
+  }
+}
+
+@keyframes lp-floor {
+  0%,
+  5% {
+    opacity: 0;
+  }
+  14%,
+  78% {
+    opacity: 1;
+  }
+  90%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes lp-walls {
+  0%,
+  7% {
+    opacity: 0;
+    transform: scaleY(0.18);
+  }
+  26%,
+  78% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  90%,
+  100% {
+    opacity: 0;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes lp-liner {
+  0%,
+  16% {
+    opacity: 0;
+  }
+  28%,
+  78% {
+    opacity: 1;
+  }
+  90%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes lp-coping {
+  0%,
+  18% {
+    opacity: 0;
+  }
+  32%,
+  78% {
+    opacity: 1;
+  }
+  90%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes lp-led {
+  0%,
+  26% {
+    opacity: 0;
+  }
+  36%,
+  78% {
+    opacity: 1;
+  }
+  90%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes lp-trace {
+  0%,
+  16% {
+    stroke-dashoffset: 720;
+    opacity: 1;
+  }
+  38%,
+  78% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  90%,
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes lp-trace-in {
+  0%,
+  22% {
+    stroke-dashoffset: 720;
+    opacity: 1;
+  }
+  42%,
+  78% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  90%,
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes lp-s0 {
+  0%,
+  30% {
+    opacity: 0;
+  }
+  38%,
+  78% {
+    opacity: 1;
+  }
+  90%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes lp-s1 {
+  0%,
+  33% {
+    opacity: 0;
+  }
+  41%,
+  78% {
+    opacity: 1;
+  }
+  90%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes lp-s2 {
+  0%,
+  36% {
+    opacity: 0;
+  }
+  44%,
+  78% {
+    opacity: 1;
+  }
+  90%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes lp-s3 {
+  0%,
+  39% {
+    opacity: 0;
+  }
+  47%,
+  78% {
+    opacity: 1;
+  }
+  90%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes lp-s4 {
+  0%,
+  42% {
+    opacity: 0;
+  }
+  50%,
+  78% {
+    opacity: 1;
+  }
+  90%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes lp-s5 {
+  0%,
+  45% {
+    opacity: 0;
+  }
+  53%,
+  78% {
+    opacity: 1;
+  }
+  90%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes lp-water {
+  0%,
+  48% {
+    opacity: 0;
+    transform: translate3d(1.2px, 2.4px, 0);
+  }
+  64%,
+  78% {
+    opacity: 1;
     transform: translate3d(0, 0, 0);
   }
-  50% {
-    transform: translate3d(0, -2.5px, 0);
-  }
-}
-
-@keyframes loader-orbit {
-  to {
-    stroke-dashoffset: -720;
-  }
-}
-
-@keyframes loader-led {
-  0%,
+  90%,
   100% {
-    opacity: 0.35;
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
   }
-  50% {
-    opacity: 0.8;
+}
+
+@keyframes lp-sheen {
+  0%,
+  58% {
+    opacity: 0;
+  }
+  70%,
+  78% {
+    opacity: 1;
+  }
+  90%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes lp-waves {
+  0%,
+  62% {
+    opacity: 0;
+  }
+  72%,
+  78% {
+    opacity: 0.7;
+  }
+  90%,
+  100% {
+    opacity: 0;
   }
 }
 
@@ -623,9 +957,19 @@ input[type='radio'] {
   .stair-place-dot,
   .scene-loader-waves,
   .scene-loader-caustic,
-  .scene-loader-pool.is-built,
-  .scene-loader-pool.is-built .scene-loader-trace-outer,
-  .scene-loader-pool.is-built .scene-loader-led-glow {
+  .scene-loader-pool.is-looping .scene-loader-shadow,
+  .scene-loader-pool.is-looping .scene-loader-floor-g,
+  .scene-loader-pool.is-looping .scene-loader-walls,
+  .scene-loader-pool.is-looping .scene-loader-liner,
+  .scene-loader-pool.is-looping .scene-loader-coping,
+  .scene-loader-pool.is-looping .scene-loader-led,
+  .scene-loader-pool.is-looping .scene-loader-well,
+  .scene-loader-pool.is-looping .scene-loader-step,
+  .scene-loader-pool.is-looping .scene-loader-stair-lines,
+  .scene-loader-pool.is-looping .scene-loader-water,
+  .scene-loader-pool.is-looping .scene-loader-water-sheen,
+  .scene-loader-pool.is-looping .scene-loader-waves,
+  .scene-loader-pool.is-looping .scene-loader-trace {
     animation: none;
   }
 

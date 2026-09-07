@@ -3,16 +3,14 @@ import { useProgress } from '@react-three/drei'
 
 import LoaderPoolMark from './LoaderPoolMark'
 
-const MIN_MS = 3800
+const MIN_MS = 3600
 const MAX_MS = 14000
-const BUILD_MS = 3200
-const TAU_POS = 1.05
-const TAU_POS_FINISH = 0.52
-const POOL_TAU = 0.18
+const BAR_MS = 6800
+const FINISH_MS = 880
 
-function smooth01(u) {
-  const t = u < 0 ? 0 : u > 1 ? 1 : u
-  return t * t * t * (t * (t * 6 - 15) + 10)
+function crawlAt(ms) {
+  const u = ms <= 0 ? 0 : ms >= BAR_MS ? 1 : ms / BAR_MS
+  return 0.1 + 0.78 * u * (2 - u)
 }
 
 export default function LoadingScreen({ sceneReady }) {
@@ -23,27 +21,25 @@ export default function LoadingScreen({ sceneReady }) {
   const done = useRef(false)
   const fillRef = useRef(null)
   const pctRef = useRef(null)
-  const poolRef = useRef(null)
   const lastPct = useRef(-1)
   const leavingRef = useRef(false)
+  const reduced =
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   leavingRef.current = leaving
 
   useEffect(() => {
-    const reduced =
-      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
     let raf = 0
-    let aim = 0.08
-    let pos = 0.08
-    let poolPos = 0.04
-    let last = performance.now()
+    let pos = 0.1
+    let leaveAt = 0
+    let leaveFrom = 0.1
     let lastDrawn = -1
-    let poolDone = false
     let bootCleared = false
-    if (!started.current) started.current = last
+    const origin = performance.now()
+    if (!started.current) started.current = origin
 
     const applyBar = (value) => {
-      const v = Math.round(value * 10000) / 10000
+      const v = Math.round(value * 1000) / 1000
       if (v === lastDrawn) return
       lastDrawn = v
       if (fillRef.current) {
@@ -59,52 +55,36 @@ export default function LoadingScreen({ sceneReady }) {
     if (reduced) {
       document.getElementById('boot-screen')?.remove()
       applyBar(1)
-      poolRef.current?.paint(1)
       return undefined
     }
 
     const tick = (now) => {
-      let dt = (now - last) / 1000
-      if (dt > 0.033) dt = 0.033
-      if (dt < 0.001) dt = 0.001
-      last = now
-
       if (!bootCleared) {
         document.getElementById('boot-screen')?.remove()
         bootCleared = true
       }
 
       const elapsed = now - started.current
-      const crawl = 0.08 + (1 - Math.exp(-elapsed / 4200)) * 0.8
-      const target = leavingRef.current ? 1 : crawl
-      const tauPos = leavingRef.current ? TAU_POS_FINISH : TAU_POS
-      aim += (target - aim) * (1 - Math.exp(-dt / tauPos))
-      let next = pos + (aim - pos) * (1 - Math.exp(-dt / tauPos))
-      if (!leavingRef.current && next < pos) next = pos
-      pos = next
-      if (pos < 0.08) pos = 0.08
-      if (pos > 1) pos = 1
-      if (leavingRef.current && pos > 0.997) pos = 1
-      applyBar(pos)
-
-      const poolTarget = leavingRef.current ? 1 : smooth01(Math.min(elapsed / BUILD_MS, 1))
-      const pooled = poolPos + (poolTarget - poolPos) * (1 - Math.exp(-dt / POOL_TAU))
-      poolPos = pooled < poolPos ? poolPos : pooled
-      if (leavingRef.current && poolPos > 0.997) poolPos = 1
-      if (!poolDone) {
-        poolRef.current?.paint(poolPos)
-        if (poolPos >= 0.995) poolDone = true
-      } else if (leavingRef.current && poolPos < 1) {
-        poolRef.current?.paint(1)
-        poolPos = 1
+      if (leavingRef.current) {
+        if (!leaveAt) {
+          leaveAt = now
+          leaveFrom = pos
+        }
+        const u = Math.min((now - leaveAt) / FINISH_MS, 1)
+        const s = u * u * (3 - 2 * u)
+        pos = leaveFrom + (1 - leaveFrom) * s
+        if (pos > 0.997) pos = 1
+      } else {
+        pos = crawlAt(elapsed)
       }
 
+      applyBar(pos)
       raf = requestAnimationFrame(tick)
     }
 
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [])
+  }, [reduced])
 
   useEffect(() => {
     if (done.current) return undefined
@@ -115,15 +95,16 @@ export default function LoadingScreen({ sceneReady }) {
       setLeaving(true)
     }
 
-    const elapsed = performance.now() - (started.current || performance.now())
+    const origin = started.current || performance.now()
+    const elapsed = performance.now() - origin
     if (elapsed >= MAX_MS) {
       finish()
       return undefined
     }
 
     if (sceneReady) {
-      const extra = active ? 180 : 0
-      const t = setTimeout(finish, Math.max(MIN_MS - elapsed, 700) + extra)
+      const extra = active ? 160 : 0
+      const t = setTimeout(finish, Math.max(MIN_MS - elapsed, 640) + extra)
       return () => clearTimeout(t)
     }
 
@@ -142,7 +123,7 @@ export default function LoadingScreen({ sceneReady }) {
 
   useEffect(() => {
     if (!leaving) return undefined
-    const t = setTimeout(() => setVisible(false), 1180)
+    const t = setTimeout(() => setVisible(false), 1750)
     return () => clearTimeout(t)
   }, [leaving])
 
@@ -165,14 +146,14 @@ export default function LoadingScreen({ sceneReady }) {
           height={36}
         />
         <div className="kicker scene-loader-kicker">Pool-Konfigurator</div>
-        <LoaderPoolMark ref={poolRef} />
+        <LoaderPoolMark variant={reduced ? 'complete' : 'loop'} />
         <div className="scene-loader-track" aria-hidden>
           <div ref={fillRef} className="scene-loader-fill" />
         </div>
         <p className="scene-loader-copy">
           3D-Szene wird geladen
           <span ref={pctRef} className="scene-loader-pct">
-            8%
+            {reduced ? '100%' : '10%'}
           </span>
         </p>
       </div>
