@@ -102,7 +102,6 @@ function RadioQuestion({ label, required, name, value, onChange, options }) {
 }
 
 const TRUST = [
-  { title: 'Ostschweiz', desc: 'Ihr Pool-Experte in der Region St. Gallen, Zürich und Schaffhausen.' },
   { title: 'Persönliche Beratung', desc: 'Von der Planung bis zur Inbetriebnahme an Ihrer Seite.' },
   { title: 'Qualität', desc: 'Polyfaser, PPool® und Chromstahl — passend zu Ihrem Garten.' },
 ]
@@ -283,7 +282,7 @@ export default function LeadForm() {
         {submitting ? 'Wird gesendet …' : 'Offerte anfordern'}
       </button>
 
-      <div className="grid grid-cols-1 gap-4 border-t border-stalder-line pt-5 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 border-t border-stalder-line pt-5 sm:grid-cols-2">
         {TRUST.map((t) => (
           <div key={t.title} className="text-center">
             <div className="text-sm font-bold uppercase tracking-wide text-stalder-taupe">{t.title}</div>
