@@ -311,10 +311,208 @@ input[type='radio'] {
   }
 }
 
+.scene-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--stalder-paper);
+  user-select: none;
+  transition: opacity 0.7s ease, visibility 0.7s ease;
+}
+
+.scene-loader.is-leaving {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.scene-loader-inner {
+  display: flex;
+  width: min(320px, calc(100% - 48px));
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.scene-loader-logo {
+  height: 32px;
+  width: auto;
+}
+
+.scene-loader-kicker {
+  margin-top: 14px;
+}
+
+.scene-loader-pool {
+  margin-top: 20px;
+  height: 118px;
+  width: 182px;
+  overflow: visible;
+  shape-rendering: geometricPrecision;
+}
+
+.scene-loader-floor-g,
+.scene-loader-walls,
+.scene-loader-coping-fill,
+.scene-loader-well,
+.scene-loader-step,
+.scene-loader-stair-lines,
+.scene-loader-water-body,
+.scene-loader-water-sheen,
+.scene-loader-waves {
+  opacity: 0;
+}
+
+.scene-loader-floor {
+  fill: #c8c3b8;
+}
+
+.scene-loader-walls {
+  transform-origin: 108px 117px;
+  transform-box: view-box;
+  transform: scaleY(0.18);
+  will-change: transform, opacity;
+}
+
+.scene-loader-wall {
+  fill: #ddd8ce;
+}
+
+.scene-loader-wall-x {
+  fill: #d2cdc3;
+}
+
+.scene-loader-grout {
+  fill: none;
+  stroke: #c4bfb4;
+  stroke-width: 0.6;
+  opacity: 0.7;
+}
+
+.scene-loader-waves {
+  fill: none;
+  stroke: #eef4f2;
+  stroke-width: 0.9;
+  stroke-linecap: round;
+  will-change: transform;
+  animation: loader-waves 14s linear infinite;
+}
+
+.scene-loader-waves-dup {
+  transform: translate(-18.56px, -8px);
+}
+
+.scene-loader-well {
+  fill: #c5d0cb;
+  stroke: none;
+}
+
+.scene-loader-step {
+  fill: #d7e2e6;
+  stroke: var(--stalder-ink);
+  stroke-width: 0.65;
+  stroke-linejoin: round;
+}
+
+.scene-loader-stair-lines {
+  fill: none;
+  stroke: var(--stalder-ink);
+  stroke-width: 0.8;
+  stroke-linecap: round;
+}
+
+.scene-loader-coping-fill {
+  fill: var(--stalder-paper);
+  stroke: none;
+}
+
+.scene-loader-trace {
+  fill: none;
+  stroke: var(--stalder-ink);
+  stroke-width: 1.35;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 720;
+  stroke-dashoffset: 720;
+}
+
+.scene-loader-trace-inner {
+  stroke-width: 1.05;
+}
+
+.scene-loader-track {
+  margin-top: 18px;
+  height: 2px;
+  width: 100%;
+  overflow: hidden;
+  background: var(--stalder-line);
+}
+
+.scene-loader-fill {
+  height: 100%;
+  width: 100%;
+  transform: translateZ(0) scaleX(0.05);
+  transform-origin: left center;
+  background: var(--stalder-ink);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.scene-loader-copy {
+  margin: 12px 0 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--stalder-taupe);
+}
+
+.scene-loader-pct {
+  font-variant-numeric: tabular-nums;
+  color: var(--stalder-ink);
+}
+
+@keyframes loader-waves {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(18.56px, 8px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .stair-place-card,
-  .stair-place-dot {
+  .stair-place-dot,
+  .scene-loader-waves {
     animation: none;
+  }
+
+  .scene-loader-floor-g,
+  .scene-loader-walls,
+  .scene-loader-coping-fill,
+  .scene-loader-well,
+  .scene-loader-step,
+  .scene-loader-stair-lines,
+  .scene-loader-water-body,
+  .scene-loader-water-sheen,
+  .scene-loader-waves {
+    opacity: 1;
+  }
+
+  .scene-loader-walls {
+    transform: none;
+  }
+
+  .scene-loader-trace {
+    stroke-dashoffset: 0;
   }
 
   *,

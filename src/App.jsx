@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { Component, useCallback, useState } from 'react'
 
+import LoadingScreen from './ui/LoadingScreen'
 import Scene from './components/Scene'
 import Header from './ui/Header'
 import ConfigSidebar from './ui/ConfigSidebar'
@@ -17,6 +18,8 @@ export default function App() {
   const setShowDimensions = usePoolConfig((s) => s.setShowDimensions)
   const showLeadForm = usePoolConfig((s) => s.showLeadForm)
   const closeLeadForm = usePoolConfig((s) => s.closeLeadForm)
+  const [sceneReady, setSceneReady] = useState(false)
+  const onSceneReady = useCallback(() => setSceneReady(true), [])
 
   return (
     <div className="relative flex h-screen w-screen flex-col overflow-hidden bg-stalder-paper">
@@ -28,7 +31,9 @@ export default function App() {
         </div>
 
         <div className="relative min-h-[38vh] flex-1 bg-gradient-to-b from-[#eaeaea] to-[#d4d2cc] lg:min-h-0">
-          <Scene />
+          <SceneBoundary onReady={onSceneReady}>
+            <Scene onReady={onSceneReady} />
+          </SceneBoundary>
 
           <div className="pointer-events-none absolute right-4 top-4 z-10 flex flex-col items-end gap-2">
             <button
@@ -87,6 +92,8 @@ export default function App() {
         </div>
       </div>
 
+      <LoadingScreen sceneReady={sceneReady} />
+
       {showLeadForm && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-stalder-ink/50 p-4">
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto bg-stalder-paper p-6 shadow-2xl">
@@ -102,4 +109,30 @@ export default function App() {
       )}
     </div>
   )
+}
+
+class SceneBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { error: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { error: true }
+  }
+
+  componentDidCatch() {
+    this.props.onReady?.()
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex h-full items-center justify-center px-8 text-center text-sm text-stalder-taupe">
+          3D-Ansicht ist auf diesem Gerät nicht verfügbar.
+        </div>
+      )
+    }
+    return this.props.children
+  }
 }

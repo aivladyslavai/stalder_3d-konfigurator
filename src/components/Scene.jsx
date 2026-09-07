@@ -358,7 +358,29 @@ const PlacedItems = React.memo(function PlacedItems({ placements, depth, waterY,
   })
 })
 
-export default function Scene() {
+function FirstFrameReady({ onReady }) {
+  const cb = useRef(onReady)
+  cb.current = onReady
+  const sent = useRef(false)
+
+  useLayoutEffect(() => {
+    let live = true
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!live || sent.current) return
+        sent.current = true
+        cb.current?.()
+      })
+    })
+    return () => {
+      live = false
+      cancelAnimationFrame(id)
+    }
+  }, [])
+  return null
+}
+
+export default function Scene({ onReady }) {
   const type = usePoolConfig((s) => s.type)
   const length = usePoolConfig((s) => s.length)
   const width = usePoolConfig((s) => s.width)
@@ -458,6 +480,7 @@ export default function Scene() {
       </EnableSceneLayers>
 
       <Suspense fallback={null}>
+        <FirstFrameReady onReady={onReady} />
         <Environment preset={L.env} environmentIntensity={L.envIntensity} />
         <Scenery>
           {outdoor && (
