@@ -6,13 +6,18 @@ import { WALL_THICKNESS } from '../data/config'
 import { makeSkyEnvTexture } from '../three/textures'
 import { cornerRadiusFor, waterLevelFor } from '../three/footprint'
 import { injectWaterWaves } from '../three/waterShader'
+import { sampleLedColors } from '../three/ledLight'
 import { FLOAT_LAYER, SCENERY_LAYER, setFloatsVisible } from '../three/layers'
+
+const WATER_CLEAR = new THREE.Color('#57b3cf')
+const WATER_PAPER = new THREE.Color('#dceef5')
+const WATER_TINT = new THREE.Color()
 
 /**
  * Ruhige Pool-Oberfläche: dichte Tessellierung, Gerstner-Wellen (leichte Brise),
  * Kapillar-Rauschen, Meniskus an der Wand. Brechung bleibt MeshTransmission.
  *
- * Props: { length, width, depth, shape, led, envMode, pickable, resolution, samples }
+ * Props: { length, width, depth, shape, led, ledColor, envMode, pickable, resolution, samples }
  */
 
 function clampToRoundedRect(x, z, hx, hz, r) {
@@ -86,6 +91,7 @@ function Water({
   depth = 1.5,
   shape,
   led,
+  ledColor = 'weiss',
   envMode = 'day',
   pickable = true,
   resolution = 512,
@@ -96,6 +102,10 @@ function Water({
   const matRef = useRef()
   const jetRef = useRef(jet)
   jetRef.current = jet
+  const ledColorRef = useRef(ledColor)
+  ledColorRef.current = ledColor
+  const ledRef = useRef(led)
+  ledRef.current = led
   const gl = useThree((s) => s.gl)
   const camera = useThree((s) => s.camera)
   const fbo = useFBO(resolution)
@@ -188,6 +198,18 @@ function Water({
           shader.uniforms.uJetDir.value.set(flow.dir[0], flow.dir[1])
         }
       }
+      if (ledRef.current) {
+        const { water } = sampleLedColors(ledColorRef.current, state.clock.elapsedTime)
+        if (mat.attenuationColor?.copy) mat.attenuationColor.copy(water)
+        else mat.attenuationColor = water.clone()
+        if (mat.color?.copy) {
+          WATER_TINT.copy(water).lerp(WATER_PAPER, 0.52)
+          mat.color.copy(WATER_TINT)
+        }
+      } else {
+        if (mat.attenuationColor?.copy) mat.attenuationColor.copy(WATER_CLEAR)
+        if (mat.color?.copy) mat.color.copy(WATER_PAPER)
+      }
     }
   }, -1)
 
@@ -196,8 +218,8 @@ function Water({
     setFloatsVisible(true)
   }, [camera])
 
-  const thickness = Math.min(depth, 2.2) * 0.32
-  const absorption = led ? 0.85 : envMode === 'day' ? 0.62 : 0.9
+  const thickness = Math.min(depth, 2.2) * (led ? 0.4 : 0.32)
+  const absorption = led ? (envMode === 'day' ? 0.98 : 0.7) : envMode === 'day' ? 0.62 : 0.9
 
   return (
     <mesh
@@ -216,7 +238,7 @@ function Water({
         ior={1.333}
         roughness={isInfinity ? 0.04 : 0.052}
         metalness={0}
-        chromaticAberration={0.012}
+        chromaticAberration={led ? 0.022 : 0.012}
         anisotropicBlur={0.01}
         distortion={0}
         distortionScale={0}

@@ -15,6 +15,7 @@ import {
   getHeatPumpInfo,
   getRolladenPrice,
   getLedInfo,
+  findLedColor,
   getStairsForType,
   fullWidthStairWall,
   countercurrentWall,
@@ -94,7 +95,8 @@ export function listSelectedLines(state) {
   }
   if (state.options.led) {
     const led = getLedInfo(state.type)
-    lines.push({ id: 'led', label: led.label, price: led.price })
+    const color = findLedColor(state.ledColor)
+    lines.push({ id: 'led', label: `${led.label} · ${color.label}`, price: led.price })
   }
   if (state.options.rolladen) {
     lines.push({ id: 'rolladen', label: 'Rollladen Polycarbonat', price: getRolladenPrice(sizeId) })
@@ -144,6 +146,7 @@ export const usePoolConfig = create((set, get) => ({
   placing: null,
   ppColor: 'Weiss',
   steelFinish: 'Gebuerstet',
+  ledColor: 'weiss',
 
   scene: 'outdoor',
   timeOfDay: 'day',
@@ -393,6 +396,7 @@ export const usePoolConfig = create((set, get) => ({
   },
   setPPColor: (ppColor) => set({ ppColor }),
   setSteelFinish: (steelFinish) => set({ steelFinish }),
+  setLedColor: (ledColor) => set({ ledColor: findLedColor(ledColor).id }),
   setLead: (patch) => set((s) => ({ lead: { ...s.lead, ...patch } })),
   setScene: (scene) => set({ scene }),
   setTimeOfDay: (timeOfDay) => set({ timeOfDay }),

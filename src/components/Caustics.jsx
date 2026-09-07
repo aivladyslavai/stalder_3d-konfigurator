@@ -3,13 +3,14 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { WALL_THICKNESS } from '../data/config'
 import { roundedRectShape, cornerRadiusFor } from '../three/footprint'
+import { lampXZ, sampleLedColors } from '../three/ledLight'
 
 /**
  * Foto-realistisches, animiertes Kaustik-Lichtnetz auf dem Beckenboden –
  * vollständig prozedural per GLSL-Shader (gleichmässige Verteilung, weiches
  * Schimmern). Wird additiv über den Boden gelegt.
  *
- * Props: { length, width, depth, shape, led, jet }
+ * Props: { length, width, depth, shape, led, ledColor, jet }
  */
 const vertexShader = /* glsl */ `
   varying vec2 vUv;
@@ -32,6 +33,10 @@ const fragmentShader = /* glsl */ `
   uniform float uJetOn;
   uniform vec2 uJetOrigin;
   uniform vec2 uJetDir;
+  uniform float uLedOn;
+  uniform float uLampN;
+  uniform vec2 uLamp0;
+  uniform vec2 uLamp1;
 
   #define TAU 6.28318530718
   #define ITER 5
@@ -49,6 +54,23 @@ const fragmentShader = /* glsl */ `
     c /= float(ITER);
     c = 1.17 - pow(c, 1.4);
     return pow(abs(c), 6.5);
+  }
+
+  float lampOne(vec2 xz, vec2 lamp) {
+    vec2 d = xz - lamp;
+    float along = d.y;
+    float across = d.x;
+    float width = mix(0.18, 1.05, pow(clamp(along / 2.6, 0.0, 1.0), 0.52));
+    float radial = exp(-(across * across) / max(2.0 * width * width, 1e-4));
+    float stream = smoothstep(-0.1, 0.28, along) * exp(-max(along, 0.0) * 0.2);
+    return radial * stream;
+  }
+
+  float lampField(vec2 xz) {
+    if (uLedOn < 0.001 || uLampN < 0.5) return 0.0;
+    float f = lampOne(xz, uLamp0);
+    if (uLampN > 1.5) f += lampOne(xz, uLamp1);
+    return clamp(f, 0.0, 1.0);
   }
 
   float jetEnvelope(vec2 xz) {
@@ -79,17 +101,24 @@ const fragmentShader = /* glsl */ `
     float c = caustic(vUv * uScale * 3.4 + vec2(5.1, -2.4), t * 1.11);
     float v = clamp(a * 0.55 + b * 0.38 + c * 0.22, 0.0, 1.0);
     v = pow(v, 1.12);
+    float lamp = lampField(xz);
     v *= 1.0 + jet * 1.25;
     v += jet * 0.14;
+    v *= 1.0 + uLedOn * (0.22 + 1.55 * lamp);
+    v += uLedOn * lamp * 0.16;
     vec2 e = smoothstep(0.0, 0.14, vUv) * smoothstep(0.0, 0.14, 1.0 - vUv);
     v *= e.x * e.y;
     gl_FragColor = vec4(uColor * v, v * uOpacity);
   }
 `
 
-function Caustics({ length, width, depth, shape, led, jet = null }) {
+function Caustics({ length, width, depth, shape, led, ledColor = 'weiss', envMode = 'day', jet = null }) {
   const jetRef = useRef(jet)
   jetRef.current = jet
+  const ledRef = useRef(led)
+  ledRef.current = led
+  const ledColorRef = useRef(ledColor)
+  ledColorRef.current = ledColor
   const t = WALL_THICKNESS
   const r = cornerRadiusFor(shape)
   const innerL = Math.max(0.4, length - t * 2)
@@ -116,13 +145,17 @@ function Caustics({ length, width, depth, shape, led, jet = null }) {
   const uniforms = useMemo(
     () => ({
       uTime: { value: 0 },
-      uColor: { value: new THREE.Color(led ? '#cdf2ff' : '#bfe9ff') },
+      uColor: { value: new THREE.Color(led ? sampleLedColors(ledColor, 0).caustic : '#bfe9ff') },
       uScale: { value: Math.max(1.5, Math.min(length, width) * 0.9) },
-      uOpacity: { value: 0.62 },
+      uOpacity: { value: led ? 0.74 : 0.62 },
       uInner: { value: new THREE.Vector2(innerL, innerW) },
       uJetOn: { value: 0 },
       uJetOrigin: { value: new THREE.Vector2() },
       uJetDir: { value: new THREE.Vector2(1, 0) },
+      uLedOn: { value: led ? 1 : 0 },
+      uLampN: { value: 0 },
+      uLamp0: { value: new THREE.Vector2() },
+      uLamp1: { value: new THREE.Vector2() },
     }),
     [],
   )
@@ -137,16 +170,24 @@ function Caustics({ length, width, depth, shape, led, jet = null }) {
         transparent: true,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
-        customProgramCacheKey: () => 'pool-caustics-jet-v4',
+        customProgramCacheKey: () => 'pool-caustics-led-v1',
       }),
     [uniforms],
   )
 
   useEffect(() => {
-    uniforms.uColor.value.set(led ? '#cdf2ff' : '#bfe9ff')
+    if (led) uniforms.uColor.value.copy(sampleLedColors(ledColor, 0).caustic)
+    else uniforms.uColor.value.set('#bfe9ff')
+    const night = envMode === 'dusk' || envMode === 'indoor'
+    uniforms.uOpacity.value = led ? (night ? 1.05 : 0.84) : 0.62
+    uniforms.uLedOn.value = led ? 1 : 0
     uniforms.uScale.value = Math.max(1.5, Math.min(length, width) * 0.9)
     uniforms.uInner.value.set(innerL, innerW)
-  }, [led, length, width, innerL, innerW, uniforms])
+    const lamps = lampXZ(length, width)
+    uniforms.uLampN.value = lamps.length
+    uniforms.uLamp0.value.set(lamps[0][0], lamps[0][1])
+    if (lamps[1]) uniforms.uLamp1.value.set(lamps[1][0], lamps[1][1])
+  }, [led, ledColor, envMode, length, width, innerL, innerW, uniforms])
 
   useEffect(() => () => {
     geometry.dispose()
@@ -160,6 +201,9 @@ function Caustics({ length, width, depth, shape, led, jet = null }) {
     if (flow) {
       uniforms.uJetOrigin.value.set(flow.origin[0], flow.origin[1])
       uniforms.uJetDir.value.set(flow.dir[0], flow.dir[1])
+    }
+    if (ledRef.current && ledColorRef.current === 'wechsel') {
+      uniforms.uColor.value.copy(sampleLedColors('wechsel', clock.elapsedTime).caustic)
     }
   })
 

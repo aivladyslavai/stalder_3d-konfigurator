@@ -10,6 +10,7 @@ import {
   getLedInfo,
 } from '../data/config'
 import { usePoolConfig } from '../hooks/usePoolConfig'
+import LedColorPicker from './LedColorPicker'
 
 function Chevron({ open }) {
   return (
@@ -266,7 +267,15 @@ export default function ConfigSidebar() {
         </Accordion>
 
         <Accordion id="licht" title="Beleuchtung" openId={openId} setOpenId={setOpenId}>
-          <RowBtn active={s.options.led} onClick={() => s.toggleOption('led')} title={led.label} />
+          <RowBtn
+            active={s.options.led}
+            onClick={() => s.toggleOption('led')}
+            title={led.label}
+            hint={s.options.led ? 'Farbe im Becken wählen' : 'Unterwasser-Scheinwerfer'}
+          />
+          {s.options.led && (
+            <LedColorPicker value={s.ledColor} onChange={s.setLedColor} />
+          )}
         </Accordion>
 
         <Accordion id="technik" title="Technik" openId={openId} setOpenId={setOpenId}>

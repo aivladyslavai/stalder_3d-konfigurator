@@ -370,6 +370,7 @@ export default function Scene() {
   const ppColor = usePoolConfig((s) => s.ppColor)
   const steelFinish = usePoolConfig((s) => s.steelFinish)
   const led = usePoolConfig((s) => s.options.led)
+  const ledColor = usePoolConfig((s) => s.ledColor)
   const rolladen = usePoolConfig((s) => s.options.rolladen)
   const scene = usePoolConfig((s) => s.scene)
   const timeOfDay = usePoolConfig((s) => s.timeOfDay)
@@ -487,13 +488,14 @@ export default function Scene() {
         {shape === 'Infinity' && (
           <OverflowFlow length={length} width={width} waterY={waterLevelFor(shape)} />
         )}
-        <Caustics length={length} width={width} depth={depth} shape={shape} led={led} jet={jetFlow} />
+        <Caustics length={length} width={width} depth={depth} shape={shape} led={led} ledColor={ledColor} envMode={scene === 'indoor' ? 'indoor' : timeOfDay} jet={jetFlow} />
         <Water
           length={length}
           width={width}
           depth={depth}
           shape={shape}
           led={led}
+          ledColor={ledColor}
           envMode={scene === 'indoor' ? 'indoor' : timeOfDay}
           pickable={!placing}
           jet={jetFlow}
@@ -509,7 +511,14 @@ export default function Scene() {
             {...acc}
           />
         )}
-        {led && <LedStrip {...acc} />}
+        {led && (
+          <LedStrip
+            {...acc}
+            colorId={ledColor}
+            envMode={scene === 'indoor' ? 'indoor' : timeOfDay}
+            waterY={waterLevelFor(shape)}
+          />
+        )}
         <Cover rolladen={rolladen} onBlocking={setCoverBlocking} {...acc} waterY={waterLevelFor(shape)} />
         <PlacedItems
           placements={placements}
@@ -546,7 +555,12 @@ export default function Scene() {
 
       <EffectComposer multisampling={0} stencilBuffer={false}>
         {(scene === 'indoor' || timeOfDay === 'dusk') && (
-          <Bloom mipmapBlur luminanceThreshold={0.75} luminanceSmoothing={0.3} intensity={0.4} />
+          <Bloom
+            mipmapBlur
+            luminanceThreshold={led ? 0.72 : 0.75}
+            luminanceSmoothing={0.32}
+            intensity={led ? 0.48 : 0.4}
+          />
         )}
         <SMAA />
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />

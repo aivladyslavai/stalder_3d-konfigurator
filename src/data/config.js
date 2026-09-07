@@ -134,6 +134,17 @@ export const LED_BY_TYPE = {
   PP: { label: 'Lampe RGBW', price: 1000 },
 }
 
+/** RGBW-Presets wie an der Fernbedienung: Weiss (W) plus Mischfarben. */
+export const LED_COLORS = [
+  { id: 'weiss', label: 'Weiss', swatch: '#f4f7fb', emit: '#f2f6ff', light: '#f7fbff', water: '#9fd4e4', caustic: '#e6f6ff' },
+  { id: 'blau', label: 'Blau', swatch: '#2f6dff', emit: '#3d86ff', light: '#7ab4ff', water: '#2a78c4', caustic: '#8ad0ff' },
+  { id: 'tuerkis', label: 'Türkis', swatch: '#20c4b8', emit: '#2ee0d2', light: '#6af5ea', water: '#26b0a6', caustic: '#8ff5ee' },
+  { id: 'gruen', label: 'Grün', swatch: '#34c75a', emit: '#45e06c', light: '#7af598', water: '#2aa056', caustic: '#9af0b4' },
+  { id: 'rot', label: 'Rot', swatch: '#e23b48', emit: '#ff4d5c', light: '#ff7a86', water: '#c44e58', caustic: '#ffb8be' },
+  { id: 'magenta', label: 'Magenta', swatch: '#c83ae0', emit: '#e85cff', light: '#f090ff', water: '#b050c4', caustic: '#eeb8ff' },
+  { id: 'wechsel', label: 'Farbwechsel', swatch: 'wechsel' },
+]
+
 export const OPTIONAL_EQUIPMENT = [
   {
     id: 'countercurrent',
@@ -417,6 +428,10 @@ export function getRolladenPrice(sizeId) {
 
 export function getLedInfo(type) {
   return LED_BY_TYPE[type] || LED_BY_TYPE.Chromstahl
+}
+
+export function findLedColor(id) {
+  return LED_COLORS.find((c) => c.id === id) || LED_COLORS[0]
 }
 
 /** 3D-Darstellung: Skimmer = Rechteck mit Skimmerdeckel, Überlauf = Infinity */
