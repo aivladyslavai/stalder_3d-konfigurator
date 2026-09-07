@@ -320,7 +320,8 @@ input[type='radio'] {
   justify-content: center;
   background: var(--stalder-paper);
   user-select: none;
-  transition: opacity 0.7s ease, visibility 0.7s ease;
+  contain: layout style paint;
+  transition: opacity 1.12s cubic-bezier(0.22, 1, 0.36, 1), visibility 1.12s linear;
 }
 
 .scene-loader.is-leaving {
@@ -335,6 +336,7 @@ input[type='radio'] {
   flex-direction: column;
   align-items: center;
   text-align: center;
+  contain: layout style;
 }
 
 .scene-loader-logo {
@@ -347,27 +349,63 @@ input[type='radio'] {
 }
 
 .scene-loader-pool {
-  margin-top: 20px;
-  height: 118px;
-  width: 182px;
+  margin-top: 18px;
+  height: 128px;
+  width: 198px;
   overflow: visible;
   shape-rendering: geometricPrecision;
 }
 
+.scene-loader-pool.is-built {
+  animation: loader-float 5.2s ease-in-out infinite;
+}
+
+.scene-loader-pool.is-built .scene-loader-trace-outer {
+  stroke-dasharray: 42 678;
+  animation: loader-orbit 6.4s linear infinite;
+}
+
+.scene-loader-pool.is-built .scene-loader-led-glow {
+  animation: loader-led 2.8s ease-in-out infinite;
+}
+
+.scene-loader-pool.is-built .scene-loader-caustic {
+  animation: loader-caustic 9s ease-in-out infinite alternate;
+}
+
+.scene-loader-pool.is-built .scene-loader-caustic-b {
+  animation-duration: 11s;
+  animation-direction: alternate-reverse;
+}
+
+.scene-loader-pool.is-built .scene-loader-waves {
+  animation: loader-waves 20s linear infinite;
+}
+
+.scene-loader-shadow,
 .scene-loader-floor-g,
 .scene-loader-walls,
-.scene-loader-coping-fill,
+.scene-loader-liner,
+.scene-loader-coping,
+.scene-loader-led,
 .scene-loader-well,
 .scene-loader-step,
 .scene-loader-stair-lines,
-.scene-loader-water-body,
+.scene-loader-water,
 .scene-loader-water-sheen,
 .scene-loader-waves {
   opacity: 0;
 }
 
 .scene-loader-floor {
-  fill: #c8c3b8;
+  fill: #cec8bb;
+}
+
+.scene-loader-floor-grout {
+  fill: none;
+  stroke: #b7b1a4;
+  stroke-width: 0.4;
+  opacity: 0.7;
 }
 
 .scene-loader-walls {
@@ -377,50 +415,99 @@ input[type='radio'] {
   will-change: transform, opacity;
 }
 
-.scene-loader-wall {
-  fill: #ddd8ce;
-}
-
-.scene-loader-wall-x {
-  fill: #d2cdc3;
-}
-
 .scene-loader-grout {
   fill: none;
-  stroke: #c4bfb4;
-  stroke-width: 0.6;
-  opacity: 0.7;
+  stroke: #c2bcb0;
+  stroke-width: 0.5;
+  opacity: 0.5;
+}
+
+.scene-loader-wall-courses {
+  fill: none;
+  stroke: #c9c3b7;
+  stroke-width: 0.4;
+  opacity: 0.45;
+}
+
+.scene-loader-liner polygon {
+  fill: #7f9b96;
+}
+
+.scene-loader-liner polygon:last-child {
+  fill: #93ada7;
+}
+
+.scene-loader-water-body {
+  fill-opacity: 0.92;
+}
+
+.scene-loader-caustic {
+  fill: #f7fffc;
+  opacity: 0.2;
+  transform-origin: 118px 58px;
+}
+
+.scene-loader-caustic-b {
+  opacity: 0.14;
+  transform-origin: 148px 70px;
+}
+
+.scene-loader-water {
+  will-change: transform, opacity;
+}
+
+.scene-loader-pool.is-built .scene-loader-water {
+  will-change: auto;
 }
 
 .scene-loader-waves {
   fill: none;
-  stroke: #eef4f2;
-  stroke-width: 0.9;
+  stroke: #f6fcfa;
+  stroke-width: 0.5;
   stroke-linecap: round;
-  will-change: transform;
-  animation: loader-waves 14s linear infinite;
 }
 
 .scene-loader-waves-dup {
   transform: translate(-18.56px, -8px);
+  opacity: 0.45;
 }
 
 .scene-loader-well {
-  fill: #c5d0cb;
+  fill: #4e6a66;
   stroke: none;
 }
 
-.scene-loader-step {
-  fill: #d7e2e6;
-  stroke: var(--stalder-ink);
-  stroke-width: 0.65;
+.scene-loader-step-top {
+  fill: #f7fbfb;
+  stroke: #3a4e4b;
+  stroke-width: 0.55;
   stroke-linejoin: round;
+}
+
+.scene-loader-step-front {
+  fill: #7e9893;
+  stroke: none;
 }
 
 .scene-loader-stair-lines {
   fill: none;
-  stroke: var(--stalder-ink);
-  stroke-width: 0.8;
+  stroke: #191923;
+  stroke-width: 0.65;
+  stroke-linecap: round;
+}
+
+.scene-loader-led-glow {
+  fill: none;
+  stroke: #d7f3ea;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  opacity: 0.55;
+}
+
+.scene-loader-led-line {
+  fill: none;
+  stroke: #b9ddd3;
+  stroke-width: 0.7;
   stroke-linecap: round;
 }
 
@@ -429,10 +516,17 @@ input[type='radio'] {
   stroke: none;
 }
 
+.scene-loader-coping-inner {
+  fill: none;
+  stroke: #e4e0d8;
+  stroke-width: 1.05;
+  stroke-linejoin: round;
+}
+
 .scene-loader-trace {
   fill: none;
   stroke: var(--stalder-ink);
-  stroke-width: 1.35;
+  stroke-width: 1.2;
   stroke-linejoin: round;
   stroke-linecap: round;
   stroke-dasharray: 720;
@@ -440,22 +534,23 @@ input[type='radio'] {
 }
 
 .scene-loader-trace-inner {
-  stroke-width: 1.05;
+  stroke-width: 0.95;
 }
 
 .scene-loader-track {
-  margin-top: 18px;
-  height: 2px;
+  margin-top: 20px;
+  height: 4px;
   width: 100%;
   overflow: hidden;
+  border-radius: 99px;
   background: var(--stalder-line);
 }
 
 .scene-loader-fill {
   height: 100%;
   width: 100%;
-  transform: translateZ(0) scaleX(0.05);
-  transform-origin: left center;
+  border-radius: 99px;
+  transform: translate3d(-92%, 0, 0);
   background: var(--stalder-ink);
   will-change: transform;
   backface-visibility: hidden;
@@ -481,27 +576,69 @@ input[type='radio'] {
 
 @keyframes loader-waves {
   from {
-    transform: translate(0, 0);
+    transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translate(18.56px, 8px);
+    transform: translate3d(18.56px, 8px, 0);
+  }
+}
+
+@keyframes loader-caustic {
+  from {
+    transform: translate3d(-3px, 1px, 0) scale(1);
+  }
+  to {
+    transform: translate3d(5px, -2px, 0) scale(1.06);
+  }
+}
+
+@keyframes loader-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -2.5px, 0);
+  }
+}
+
+@keyframes loader-orbit {
+  to {
+    stroke-dashoffset: -720;
+  }
+}
+
+@keyframes loader-led {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.8;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .stair-place-card,
   .stair-place-dot,
-  .scene-loader-waves {
+  .scene-loader-waves,
+  .scene-loader-caustic,
+  .scene-loader-pool.is-built,
+  .scene-loader-pool.is-built .scene-loader-trace-outer,
+  .scene-loader-pool.is-built .scene-loader-led-glow {
     animation: none;
   }
 
+  .scene-loader-shadow,
   .scene-loader-floor-g,
   .scene-loader-walls,
-  .scene-loader-coping-fill,
+  .scene-loader-liner,
+  .scene-loader-coping,
+  .scene-loader-led,
   .scene-loader-well,
   .scene-loader-step,
   .scene-loader-stair-lines,
-  .scene-loader-water-body,
+  .scene-loader-water,
   .scene-loader-water-sheen,
   .scene-loader-waves {
     opacity: 1;
