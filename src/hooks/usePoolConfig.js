@@ -81,9 +81,8 @@ export function listSelectedLines(state) {
   lines.push({
     id: 'base',
     label: `${state.type === 'PP' ? 'PP' : 'Chromstahl'} ${state.poolSystem === 'Ueberlauf' ? 'Überlauf' : 'Skimmer'} ${formatDimsShort(state.length, state.width, state.depth)}`,
-    price: getBasePrice(state.type, state.poolSystem, state.length, state.width),
+    price: getBasePrice(state.type, state.poolSystem, state.length, state.width) + getFilterInfo(sizeId).price,
   })
-  lines.push({ id: 'filter', label: getFilterInfo(sizeId).label, price: getFilterInfo(sizeId).price })
 
   const stair = findStair(state.type, state.stair)
   if (stair.price > 0) lines.push({ id: 'stair', label: stair.label, price: stair.price })

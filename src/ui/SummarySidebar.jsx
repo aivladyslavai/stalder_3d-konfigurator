@@ -67,7 +67,7 @@ export default function SummarySidebar() {
           {lines.map((line) => (
             <li key={line.id} className="flex items-start justify-between gap-2 text-xs text-gray-700">
               <span>{line.label}</span>
-              {line.id !== 'base' && line.id !== 'filter' && (
+              {line.id !== 'base' && (
                 <button
                   type="button"
                   className="shrink-0 text-[10px] uppercase tracking-wide text-gray-400 hover:text-red-500"
