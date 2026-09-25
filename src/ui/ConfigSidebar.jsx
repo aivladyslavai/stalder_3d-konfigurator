@@ -169,8 +169,8 @@ export default function ConfigSidebar() {
   }
 
   return (
-    <aside className="flex h-full min-h-0 w-full flex-col border-r border-stalder-line bg-stalder-paper lg:w-[300px] lg:flex-none">
-      <div className="border-b border-stalder-line px-4 py-3">
+    <aside className="flex h-full min-h-0 w-full flex-col bg-stalder-paper lg:w-[300px] lg:flex-none lg:border-r lg:border-stalder-line">
+      <div className="hidden border-b border-stalder-line px-4 py-3 lg:block">
         <div className="kicker">Konfiguration</div>
       </div>
 

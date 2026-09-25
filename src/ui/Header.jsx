@@ -3,12 +3,12 @@ import { PHONE, SITE_URL } from '../data/config'
 
 function Header() {
   return (
-    <header className="flex h-[72px] flex-none items-center justify-between border-b border-stalder-line bg-stalder-paper px-4 text-stalder-ink sm:px-6">
+    <header className="flex h-14 flex-none items-center justify-between border-b border-stalder-line bg-stalder-paper px-4 text-stalder-ink sm:px-6 lg:h-[72px]">
       <a href={SITE_URL} target="_blank" rel="noreferrer" className="flex min-w-0 items-center gap-4" aria-label="Stalder Schwimmbadtechnik">
         <img
           src="/brand/stalder-logo.svg"
           alt="Stalder Schwimmbadtechnik"
-          className="h-8 w-auto sm:h-9"
+          className="h-7 w-auto lg:h-9"
           width={196}
           height={36}
         />

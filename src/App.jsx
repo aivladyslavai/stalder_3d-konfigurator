@@ -4,13 +4,13 @@ import LoadingScreen from './ui/LoadingScreen'
 import Scene from './components/Scene'
 import Header from './ui/Header'
 import ConfigSidebar from './ui/ConfigSidebar'
-import SummarySidebar from './ui/SummarySidebar'
+import SummarySidebar, { SceneLookControls } from './ui/SummarySidebar'
 import LeadForm from './ui/steps/LeadForm'
 import StairPlacementModal from './ui/StairPlacementModal'
 import { formatCHF, usePoolConfig } from './hooks/usePoolConfig'
 
 const MOBILE_PANES = [
-  { id: 'config', label: 'Konfig' },
+  { id: 'config', label: 'Konfiguration' },
   { id: 'view', label: 'Ansicht' },
   { id: 'summary', label: 'Übersicht' },
 ]
@@ -52,21 +52,21 @@ export default function App() {
       <Header />
 
       {narrow && (
-        <div className="flex flex-none border-b border-stalder-line bg-stalder-paper">
-          {MOBILE_PANES.map((pane) => (
-            <button
-              key={pane.id}
-              type="button"
-              onClick={() => setMobilePane(pane.id)}
-              className={`min-h-11 flex-1 px-1 py-3 text-[11px] font-bold uppercase tracking-brand ${
-                mobilePane === pane.id
-                  ? 'border-b-2 border-stalder-ink text-stalder-ink'
-                  : 'text-stalder-muted'
-              }`}
-            >
-              {pane.label}
-            </button>
-          ))}
+        <div className="flex-none bg-stalder-paper px-3 py-2">
+          <div className="grid grid-cols-3 bg-[#f4f3f0] p-1">
+            {MOBILE_PANES.map((pane) => (
+              <button
+                key={pane.id}
+                type="button"
+                onClick={() => setMobilePane(pane.id)}
+                className={`min-h-9 px-1 text-[10px] font-bold uppercase tracking-brand ${
+                  mobilePane === pane.id ? 'bg-stalder-ink text-white' : 'text-stalder-muted'
+                }`}
+              >
+                {pane.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -83,7 +83,7 @@ export default function App() {
 
         <div
           className={`scene-stage min-h-0 bg-gradient-to-b from-[#eaeaea] to-[#d4d2cc] ${
-            narrow ? 'absolute inset-0' : 'relative min-w-0 flex-1'
+            narrow ? 'absolute inset-0 z-0' : 'relative min-w-0 flex-1'
           }`}
         >
           <div className="scene-canvas">
@@ -92,7 +92,17 @@ export default function App() {
             </SceneBoundary>
           </div>
 
-          <div className="pointer-events-none absolute right-4 top-4 z-10 flex flex-col items-end gap-2">
+          {narrow && mobilePane === 'view' && (
+            <div className="absolute inset-x-3 bottom-3 z-10 border border-white/70 bg-stalder-paper/95 p-2.5 shadow-lg backdrop-blur">
+              <SceneLookControls />
+            </div>
+          )}
+
+          <div
+            className={`pointer-events-none absolute right-3 top-3 z-10 flex flex-row items-start gap-2 lg:right-4 lg:top-4 lg:flex-col lg:items-end ${
+              narrow && mobilePane !== 'view' ? 'hidden' : ''
+            }`}
+          >
             <button
               type="button"
               onClick={() => setTopView(!topView)}
@@ -156,10 +166,10 @@ export default function App() {
       </div>
 
       {narrow && (
-        <div className="flex flex-none items-center gap-3 border-t border-stalder-line bg-stalder-paper px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="flex flex-none items-center gap-3 border-t border-stalder-line bg-stalder-paper px-4 py-2.5 pb-[max(0.65rem,env(safe-area-inset-bottom))]">
           <div className="min-w-0">
-            <div className="text-[10px] uppercase tracking-wide text-stalder-muted">exkl. MwSt.</div>
-            <div className="text-lg font-bold leading-none text-stalder-ink">{formatCHF(price)}</div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-stalder-taupe">Geschätzt</div>
+            <div className="text-xl font-bold leading-none tabular-nums text-stalder-ink">{formatCHF(price)}</div>
           </div>
           <button type="button" onClick={openLeadForm} className="btn-stalder min-w-0 flex-1">
             Offerte anfordern
