@@ -438,17 +438,21 @@ export default function Scene({ onReady }) {
     ? Math.min(HEDGE_RADIUS - 2, Math.max(18, length + width + 10))
     : indoorLimits.maxDistance
 
+  const compact =
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches
+
   return (
     <Canvas
       shadows
-      dpr={[1, 1.75]}
-      performance={{ min: 0.75, debounce: 200 }}
-      camera={{ position: [11, 6, 11], fov: 44 }}
+      dpr={compact ? [1, 1.25] : [1, 1.75]}
+      performance={{ min: 0.6, debounce: 200 }}
+      camera={{ position: [11, 6, 11], fov: compact ? 50 : 44 }}
       gl={{
         antialias: false,
         toneMapping: THREE.NoToneMapping,
-        powerPreference: 'high-performance',
+        powerPreference: compact ? 'default' : 'high-performance',
         stencil: false,
+        failIfMajorPerformanceCaveat: false,
       }}
     >
       <color attach="background" args={[L.bg]} />
@@ -458,7 +462,7 @@ export default function Scene({ onReady }) {
         <Sky turbidity={L.sky.turbidity} rayleigh={L.sky.rayleigh} mieCoefficient={0.005} mieDirectionalG={0.85} sunPosition={L.sky.sun} />
       )}
 
-      <SoftShadows size={16} samples={12} focus={0.68} />
+      {!compact && <SoftShadows size={16} samples={12} focus={0.68} />}
       <EnableSceneLayers>
       <ambientLight intensity={L.ambient} />
         <hemisphereLight args={['#d7e6f2', '#7a8a62', L.hemi]} />
@@ -467,8 +471,8 @@ export default function Scene({ onReady }) {
         intensity={L.sun.intensity}
         color={L.sun.color}
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={compact ? 1024 : 2048}
+        shadow-mapSize-height={compact ? 1024 : 2048}
         shadow-bias={-0.0002}
           shadow-camera-left={outdoor ? -20 : -16}
           shadow-camera-right={outdoor ? 20 : 16}
@@ -585,7 +589,7 @@ export default function Scene({ onReady }) {
             intensity={led ? 0.48 : 0.4}
           />
         )}
-        <SMAA />
+        {!compact && <SMAA />}
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
         <Vignette eskil={false} offset={0.28} darkness={scene === 'indoor' || timeOfDay === 'dusk' ? 0.4 : 0.18} />
       </EffectComposer>

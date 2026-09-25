@@ -1,4 +1,4 @@
-import React, { Component, useCallback, useState } from 'react'
+import React, { Component, useCallback, useEffect, useState } from 'react'
 
 import LoadingScreen from './ui/LoadingScreen'
 import Scene from './components/Scene'
@@ -7,7 +7,25 @@ import ConfigSidebar from './ui/ConfigSidebar'
 import SummarySidebar from './ui/SummarySidebar'
 import LeadForm from './ui/steps/LeadForm'
 import StairPlacementModal from './ui/StairPlacementModal'
-import { usePoolConfig } from './hooks/usePoolConfig'
+import { formatCHF, usePoolConfig } from './hooks/usePoolConfig'
+
+const MOBILE_PANES = [
+  { id: 'config', label: 'Konfig' },
+  { id: 'view', label: 'Ansicht' },
+  { id: 'summary', label: 'Übersicht' },
+]
+
+function useNarrowLayout() {
+  const [narrow, setNarrow] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)')
+    const apply = () => setNarrow(mq.matches)
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [])
+  return narrow
+}
 
 export default function App() {
   const placing = usePoolConfig((s) => s.placing)
@@ -18,22 +36,61 @@ export default function App() {
   const setShowDimensions = usePoolConfig((s) => s.setShowDimensions)
   const showLeadForm = usePoolConfig((s) => s.showLeadForm)
   const closeLeadForm = usePoolConfig((s) => s.closeLeadForm)
+  const price = usePoolConfig((s) => s.price)
+  const openLeadForm = usePoolConfig((s) => s.openLeadForm)
   const [sceneReady, setSceneReady] = useState(false)
+  const [mobilePane, setMobilePane] = useState('config')
+  const narrow = useNarrowLayout()
   const onSceneReady = useCallback(() => setSceneReady(true), [])
 
+  useEffect(() => {
+    if (placing) setMobilePane('view')
+  }, [placing])
+
   return (
-    <div className="relative flex h-screen w-screen flex-col overflow-hidden bg-stalder-paper">
+    <div className="relative flex h-dvh w-screen flex-col overflow-hidden bg-stalder-paper">
       <Header />
 
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <div className="max-h-[42vh] overflow-hidden lg:max-h-none lg:h-full">
+      {narrow && (
+        <div className="flex flex-none border-b border-stalder-line bg-stalder-paper">
+          {MOBILE_PANES.map((pane) => (
+            <button
+              key={pane.id}
+              type="button"
+              onClick={() => setMobilePane(pane.id)}
+              className={`min-h-11 flex-1 px-1 py-3 text-[11px] font-bold uppercase tracking-brand ${
+                mobilePane === pane.id
+                  ? 'border-b-2 border-stalder-ink text-stalder-ink'
+                  : 'text-stalder-muted'
+              }`}
+            >
+              {pane.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className={`min-h-0 flex-1 ${narrow ? 'relative' : 'flex flex-row'}`}>
+        <div
+          className={
+            narrow
+              ? `absolute inset-0 z-10 bg-stalder-paper ${mobilePane === 'config' ? '' : 'hidden'}`
+              : 'h-full'
+          }
+        >
           <ConfigSidebar />
         </div>
 
-        <div className="relative min-h-[38vh] flex-1 bg-gradient-to-b from-[#eaeaea] to-[#d4d2cc] lg:min-h-0">
-          <SceneBoundary onReady={onSceneReady}>
-            <Scene onReady={onSceneReady} />
-          </SceneBoundary>
+        <div
+          className={`scene-stage min-h-0 bg-gradient-to-b from-[#eaeaea] to-[#d4d2cc] ${
+            narrow ? 'absolute inset-0' : 'relative min-w-0 flex-1'
+          }`}
+        >
+          <div className="scene-canvas">
+            <SceneBoundary onReady={onSceneReady}>
+              <Scene onReady={onSceneReady} />
+            </SceneBoundary>
+          </div>
 
           <div className="pointer-events-none absolute right-4 top-4 z-10 flex flex-col items-end gap-2">
             <button
@@ -87,16 +144,34 @@ export default function App() {
           )}
         </div>
 
-        <div className="max-h-[40vh] overflow-hidden lg:max-h-none lg:h-full">
-          <SummarySidebar />
+        <div
+          className={
+            narrow
+              ? `absolute inset-0 z-10 bg-stalder-paper ${mobilePane === 'summary' ? '' : 'hidden'}`
+              : 'h-full'
+          }
+        >
+          <SummarySidebar compact={narrow} />
         </div>
       </div>
+
+      {narrow && (
+        <div className="flex flex-none items-center gap-3 border-t border-stalder-line bg-stalder-paper px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="min-w-0">
+            <div className="text-[10px] uppercase tracking-wide text-stalder-muted">exkl. MwSt.</div>
+            <div className="text-lg font-bold leading-none text-stalder-ink">{formatCHF(price)}</div>
+          </div>
+          <button type="button" onClick={openLeadForm} className="btn-stalder min-w-0 flex-1">
+            Offerte anfordern
+          </button>
+        </div>
+      )}
 
       <LoadingScreen sceneReady={sceneReady} />
 
       {showLeadForm && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-stalder-ink/50 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto bg-stalder-paper p-6 shadow-2xl">
+        <div className="absolute inset-0 z-30 flex items-end justify-center bg-stalder-ink/50 sm:items-center sm:p-4">
+          <div className="max-h-[100dvh] w-full max-w-lg overflow-y-auto bg-stalder-paper p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:max-h-[90vh] sm:p-6">
             <div className="mb-4 flex items-start justify-between gap-4">
               <h2 className="text-lg font-bold uppercase tracking-wide text-stalder-taupe">Offerte anfordern</h2>
               <button type="button" onClick={closeLeadForm} className="text-stalder-muted hover:text-stalder-ink" aria-label="Schliessen">

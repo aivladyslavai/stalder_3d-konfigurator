@@ -21,7 +21,7 @@ function Pill({ options, value, onChange }) {
   )
 }
 
-export default function SummarySidebar() {
+export default function SummarySidebar({ compact = false }) {
   const s = usePoolConfig()
   const lines = listSelectedLines(s)
   const openLeadForm = usePoolConfig((st) => st.openLeadForm)
@@ -81,7 +81,7 @@ export default function SummarySidebar() {
         </ul>
       </div>
 
-      <div className="border-t border-stalder-line px-4 py-4">
+      <div className={`border-t border-stalder-line px-4 py-4 ${compact ? 'hidden' : ''}`}>
         <div className="text-[11px] uppercase tracking-wide text-stalder-muted">Geschätzte Kosten exkl. MwSt.</div>
         <div className="mt-1 text-3xl font-bold text-stalder-ink">{formatCHF(s.price)}</div>
         <button type="button" onClick={openLeadForm} className="btn-stalder mt-4">

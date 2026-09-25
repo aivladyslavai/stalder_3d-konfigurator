@@ -33,6 +33,22 @@ canvas {
   touch-action: none;
 }
 
+.scene-stage {
+  overflow: hidden;
+}
+
+.scene-canvas {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.scene-canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 button,
 input,
 textarea {
