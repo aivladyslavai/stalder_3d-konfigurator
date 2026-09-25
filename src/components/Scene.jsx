@@ -485,7 +485,6 @@ export default function Scene({ onReady }) {
 
       <Suspense fallback={null}>
         <FirstFrameReady onReady={onReady} />
-        <Environment preset={L.env} environmentIntensity={L.envIntensity} />
         <Scenery>
           {outdoor && (
             <DayClouds dusk={timeOfDay === 'dusk'} />
@@ -499,9 +498,13 @@ export default function Scene({ onReady }) {
           )}
           <Deck length={length} width={width} shape={shape} deck={deck} margin={deckMargin} />
           {showDimensions && <DimensionLabels length={length} width={width} shape={shape} />}
-          {outdoor && <Vegetation timeOfDay={timeOfDay} />}
         </Scenery>
         {!outdoor && <Indoor poolLength={length} poolWidth={width} />}
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <Environment preset={L.env} environmentIntensity={L.envIntensity} />
+        {outdoor && <Vegetation timeOfDay={timeOfDay} />}
         <Surroundings
           poolLength={length}
           poolWidth={width}
@@ -511,6 +514,9 @@ export default function Scene({ onReady }) {
           rolladen={rolladen || coverBlocking}
           jet={jetFlow}
         />
+      </Suspense>
+
+      <Suspense fallback={null}>
         <Pool length={length} width={width} depth={depth} material={material} shape={shape} />
         {shape === 'Infinity' && (
           <OverflowFlow length={length} width={width} waterY={waterLevelFor(shape)} />

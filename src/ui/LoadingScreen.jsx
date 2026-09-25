@@ -3,10 +3,12 @@ import { useProgress } from '@react-three/drei'
 
 import LoaderPoolMark from './LoaderPoolMark'
 
-const MIN_MS = 3600
-const MAX_MS = 14000
-const BAR_MS = 6800
-const FINISH_MS = 880
+const phone =
+  typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches
+const MIN_MS = phone ? 280 : 3600
+const MAX_MS = phone ? 7000 : 14000
+const BAR_MS = phone ? 2200 : 6800
+const FINISH_MS = phone ? 420 : 880
 
 function crawlAt(ms) {
   const u = ms <= 0 ? 0 : ms >= BAR_MS ? 1 : ms / BAR_MS
@@ -104,7 +106,7 @@ export default function LoadingScreen({ sceneReady }) {
 
     if (sceneReady) {
       const extra = active ? 160 : 0
-      const t = setTimeout(finish, Math.max(MIN_MS - elapsed, 640) + extra)
+      const t = setTimeout(finish, Math.max(MIN_MS - elapsed, phone ? 80 : 640) + extra)
       return () => clearTimeout(t)
     }
 
@@ -123,7 +125,7 @@ export default function LoadingScreen({ sceneReady }) {
 
   useEffect(() => {
     if (!leaving) return undefined
-    const t = setTimeout(() => setVisible(false), 1750)
+    const t = setTimeout(() => setVisible(false), phone ? 520 : 1750)
     return () => clearTimeout(t)
   }, [leaving])
 

@@ -177,15 +177,18 @@ export function GltfCopies({
 
 const preload = (url) => useGLTF.preload(url, true, true, extendGltfLoader)
 
-preload('/models/palm.glb')
-preload('/models/coconut-palm.glb')
-preload('/models/date-palm.glb')
-preload('/models/rhizome.glb')
-preload('/models/pothos.glb')
-preload('/models/float.glb')
-preload('/models/beach-chair-2.glb')
-preload('/models/cooler.glb')
-preload('/models/cocktail.glb')
-preload('/models/flipflops.glb')
-preload('/models/tropical.glb')
-preload('/models/plants.glb')
+const phone = typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches
+if (!phone) {
+  preload('/models/palm.glb')
+  preload('/models/coconut-palm.glb')
+  preload('/models/date-palm.glb')
+  preload('/models/rhizome.glb')
+  preload('/models/pothos.glb')
+  preload('/models/float.glb')
+  preload('/models/beach-chair-2.glb')
+  preload('/models/cooler.glb')
+  preload('/models/cocktail.glb')
+  preload('/models/flipflops.glb')
+  preload('/models/tropical.glb')
+  preload('/models/plants.glb')
+}
