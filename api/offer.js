@@ -61,8 +61,8 @@ export function parseOfferPayload(raw) {
     message: clip(leadIn.message, MAX_MESSAGE),
   }
 
-  if (!lead.firstName || !lead.lastName || !lead.email) {
-    return { error: 'Bitte Name und E-Mail ausfüllen.' }
+  if (!lead.firstName || !lead.lastName || !lead.phone || !lead.email) {
+    return { error: 'Bitte Name, Telefon und E-Mail ausfüllen.' }
   }
   if (!EMAIL_RE.test(lead.email)) {
     return { error: 'Bitte eine gültige E-Mail-Adresse angeben.' }

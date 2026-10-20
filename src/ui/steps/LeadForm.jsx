@@ -196,7 +196,7 @@ export default function LeadForm() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Vorname" required value={lead.firstName} onChange={(v) => setLead({ firstName: v })} />
         <Field label="Nachname" required value={lead.lastName} onChange={(v) => setLead({ lastName: v })} />
-        <Field label="Telefon" type="tel" value={lead.phone} onChange={(v) => setLead({ phone: v })} />
+        <Field label="Telefon" required type="tel" value={lead.phone} onChange={(v) => setLead({ phone: v })} />
         <Field label="E-Mail" required type="email" value={lead.email} onChange={(v) => setLead({ email: v })} />
         <Field label="PLZ" value={lead.zip} onChange={(v) => setLead({ zip: v })} />
         <Field label="Stadt" value={lead.city || ''} onChange={(v) => setLead({ city: v })} />
