@@ -35,13 +35,13 @@ function lighting(scene, time) {
   if (scene === 'indoor') {
     return {
       env: 'apartment',
-      envIntensity: 0.82,
+      envIntensity: 0.7,
       bg: '#1c1916',
       sky: false,
       fog: ['#1c1916', 42, 90],
-      ambient: 0.42,
-      sun: { pos: [5, 10, 6], intensity: 0.88, color: '#ffe8c8' },
-      hemi: 0.32,
+      ambient: 0.34,
+      sun: { pos: [4, 8, 5], intensity: 0.55, color: '#ffe8c8' },
+      hemi: 0.26,
     }
   }
   if (time === 'dusk') {
@@ -91,9 +91,9 @@ function CameraRig({ scene, length, width, topView }) {
       camera.fov = 52
       camera.updateProjectionMatrix()
       camera.position.set(
-        Math.min(length * 0.12, 1.15),
-        1.85,
-        Math.min(width / 2 + 3.4, hall.z / 2 - 0.75),
+        -Math.min(hall.x / 2 - 1.4, 5.2),
+        1.95,
+        Math.min(hall.z / 2 - 1.3, 4.8),
       )
     } else {
       camera.fov = 44
